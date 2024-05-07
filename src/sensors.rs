@@ -1,27 +1,26 @@
 use crate::{config::*, error::GenericResult, io::get_input_voltage};
 
-pub fn get_temperature() -> GenericResult<f32> {
-    const THERMISTOR_NOMINAL_RESISTANCE: f32 = 10_000.;
-    const THERMISTOR_NOMINAL_TEMPERATURE: f32 = 298.15;
-    const THERMISTOR_CONSTANT: f32 = 3950.;
-
-    let voltage = get_input_voltage(THERMISTOR_ANALOG_PIN)?;
-    let resistance = (LOGIC_LEVEL / voltage - 1.) * THERMISTOR_VOLTAGE_DIVIDER_RESISTANCE;
+pub fn get_temperature(config: &Configuration) -> GenericResult<f32> {
+    let voltage = get_input_voltage(config.thermistor_settings.pin)?;
+    let resistance = (config.board_settings.logic_level / voltage - 1.)
+        * config.thermistor_settings.voltage_divider_resistance;
     let temperature = 1.
-        / ((1. / THERMISTOR_NOMINAL_TEMPERATURE)
-            + (1. / THERMISTOR_CONSTANT * f32::ln(resistance / THERMISTOR_NOMINAL_RESISTANCE)))
+        / ((1. / config.thermistor_settings.nominal_temperature)
+            + (1. / config.thermistor_settings.thermal_constant
+                * f32::ln(resistance / config.thermistor_settings.nominal_resistance)))
         - 273.15;
     Ok(temperature)
 }
 
-pub fn get_soil_moisture() -> GenericResult<f32> {
-    let voltage = get_input_voltage(SOIL_MOISTURE_PIN)?;
+pub fn get_soil_moisture(config: &Configuration) -> GenericResult<f32> {
+    let voltage = get_input_voltage(config.soil_moisture_settings.pin)?;
 
-    const VOLTAGE_ZERO_HUMIDITY: f32 = (SOIL_NOMINAL_MOISTURE_VOLTAGE
-        - SOIL_MOISTURE_100_VOLTAGE * SOIL_NOMINAL_MOISTURE)
-        / (1. - SOIL_NOMINAL_MOISTURE);
+    let voltage_zero_humidity: f32 = (config.soil_moisture_settings.voltage_nominal
+        - config.soil_moisture_settings.voltage_100
+            * config.soil_moisture_settings.moisture_nominal)
+        / (1. - config.soil_moisture_settings.moisture_nominal);
 
-    let humidity =
-        (voltage - VOLTAGE_ZERO_HUMIDITY) / (SOIL_MOISTURE_100_VOLTAGE - VOLTAGE_ZERO_HUMIDITY);
+    let humidity = (voltage - voltage_zero_humidity)
+        / (config.soil_moisture_settings.voltage_100 - voltage_zero_humidity);
     Ok(humidity)
 }

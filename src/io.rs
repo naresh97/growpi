@@ -25,21 +25,28 @@ pub fn get_input_voltage(pin: u8) -> GenericResult<f32> {
 }
 
 pub struct Relay {
-    relay_pins: [Option<rppal::gpio::OutputPin>; RELAY_GPIO_PINS.len()],
+    relay_pins: Vec<Option<rppal::gpio::OutputPin>>,
 }
 pub enum RelaySwitchState {
     On,
     Off,
 }
 impl Relay {
-    pub fn new() -> GenericResult<Relay> {
-        let mut output_pins = RELAY_GPIO_PINS.map(|pin| {
-            pin.and_then(|pin| {
-                let result =
-                    (|| -> GenericResult<OutputPin> { Ok(Gpio::new()?.get(pin)?.into_output()) })();
-                result.ok()
+    pub fn new(config: &Configuration) -> GenericResult<Relay> {
+        let mut output_pins = config
+            .relay_settings
+            .relay_gpio_pins
+            .clone()
+            .into_iter()
+            .map(|pin| {
+                pin.and_then(|pin| {
+                    let result = (|| -> GenericResult<OutputPin> {
+                        Ok(Gpio::new()?.get(pin)?.into_output())
+                    })();
+                    result.ok()
+                })
             })
-        });
+            .collect::<Vec<_>>();
         for pin in output_pins.iter_mut().flatten() {
             // The relay turns ON on LOW
             pin.set_high();
@@ -48,14 +55,19 @@ impl Relay {
             relay_pins: output_pins,
         })
     }
-    pub fn toggle(&mut self, pin: u8) -> GenericResult<()> {
-        let pin = self.get_output_pin(pin)?;
+    pub fn toggle(&mut self, pin: u8, config: &Configuration) -> GenericResult<()> {
+        let pin = self.get_output_pin(pin, config)?;
         pin.toggle();
         Ok(())
     }
 
-    pub fn switch(&mut self, pin: u8, state: RelaySwitchState) -> GenericResult<()> {
-        let pin = self.get_output_pin(pin)?;
+    pub fn switch(
+        &mut self,
+        pin: u8,
+        state: RelaySwitchState,
+        config: &Configuration,
+    ) -> GenericResult<()> {
+        let pin = self.get_output_pin(pin, config)?;
         match state {
             RelaySwitchState::On => pin.set_low(),
             RelaySwitchState::Off => pin.set_high(),
@@ -63,14 +75,14 @@ impl Relay {
         Ok(())
     }
 
-    fn get_output_pin(&mut self, pin: u8) -> GenericResult<&mut OutputPin> {
+    fn get_output_pin(&mut self, pin: u8, config: &Configuration) -> GenericResult<&mut OutputPin> {
         Ok(self
             .relay_pins
             .get_mut(pin as usize)
             .ok_or(format!(
                 "Pin {} not within pin array with length {}",
                 pin,
-                RELAY_GPIO_PINS.len()
+                config.relay_settings.relay_gpio_pins.len()
             ))?
             .as_mut()
             .ok_or("Pin not configured.")?)
