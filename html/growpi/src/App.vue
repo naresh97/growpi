@@ -1,5 +1,6 @@
 <script>
 import Button from 'primevue/button';
+import InputNumber from 'primevue/inputnumber';
 import ToggleButton from 'primevue/togglebutton';
 export default {
   data() {
@@ -10,9 +11,10 @@ export default {
       water_state: false,
       water_primed: false,
       fan_state: false,
+      pumpAmount: 150,
     };
   },
-  components: { ToggleButton, Button },
+  components: { ToggleButton, Button, InputNumber },
   methods: {
     async updateInfo() {
       let info = await receiveInfo();
@@ -21,15 +23,20 @@ export default {
       this.pump_state = to_bool(info.pump_state);
       this.temperature = info.temperature;
       this.soil_moisture = info.soil_moisture;
-      console.log(info);
     },
     async sendSwitch(name, state) {
       await fetch("http://192.168.0.107:2205/switch/" + name + "/" + to_state(state));
       await this.updateInfo();
+    },
+    async pumpWater() {
+      console.log("Pumping: " + this.pumpAmount);
+      await fetch("http://192.168.0.107:2205/pump/" + this.pumpAmount);
+      await this.updateInfo();
     }
   },
   created() {
-    setTimeout(this.updateInfo, 1000);
+    this.updateInfo();
+    setInterval(this.updateInfo, 1000);
   }
 }
 
@@ -60,29 +67,75 @@ function to_bool(state) {
 </script>
 <template>
   <h1>GrowPi!</h1>
-  <table>
+  <table class="main-table">
+    <tr>
+      <td>Temperature</td>
+      <td>
+        {{ Math.round(temperature * 100) / 100 }}°C
+      </td>
+    </tr>
+    <tr>
+      <td>Soil Moisture</td>
+      <td>
+        {{ Math.round(soil_moisture * 1000) / 10 }}%
+      </td>
+    </tr>
     <tr>
       <td>Lights</td>
       <td>
-        <ToggleButton :modelValue="light_state" something="hi" @change="sendSwitch('lights', !light_state)" onLabel="On"
-          offLabel="Off" />
+        <ToggleButton class="whole-cell" :modelValue="light_state" something="hi"
+          @change="sendSwitch('lights', !light_state)" onLabel="On" offLabel="Off" />
       </td>
     </tr>
     <tr>
       <td>Fan</td>
       <td>
-        <ToggleButton :modelValue="fan_state" @change="sendSwitch('fan', !fan_state)" onLabel="On" offLabel="Off" />
+        <ToggleButton class="whole-cell" :modelValue="fan_state" @change="sendSwitch('fan', !fan_state)" onLabel="On"
+          offLabel="Off" />
       </td>
     </tr>
     <tr>
       <td>Pump</td>
       <td>
-        <ToggleButton v-model="water_primed" onLabel="Ready" offLabel="Click to Prime" />
-        <Button @change="sendSwitch('pump', !water_state); water_primed = false;" :disabled="!water_primed"
-          label="Pump Water" />
-        {{ water_state ? "Pump active" : "Pump inactive" }}
+        <div class="whole-cell">
+          <ToggleButton v-model="water_primed" onLabel="Ready" offLabel="Click to Prime" />
+          <Button @click="pumpWater(); water_primed = false;" :disabled="!water_primed && !water_state"
+            label="Pump Water" />
+        </div>
+        <br /><br />
+        <InputNumber class="whole-cell" v-model="pumpAmount" :allowEmpty="false" inputId="integeronly" suffix=" grams"
+          :min="100" :max="300" />
       </td>
     </tr>
   </table>
 </template>
-<style></style>
+<style>
+html,
+body {
+  height: 100%;
+}
+
+html {
+  display: table;
+  margin: auto;
+}
+
+body {
+  display: table-cell;
+  vertical-align: middle;
+}
+
+.main-table {
+  border-collapse: collapse;
+}
+
+.main-table td {
+  border-style: solid;
+  padding: 1em;
+  border-width: 1px;
+}
+
+.whole-cell {
+  width: 100%;
+}
+</style>

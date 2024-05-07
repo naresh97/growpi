@@ -1,9 +1,10 @@
-import 'primevue/resources/themes/aura-light-green/theme.css'
+import 'primevue/resources/themes/aura-dark-green/theme.css'
 
 import { createApp } from 'vue'
 import PrimeVue from 'primevue/config'
 import App from './App.vue'
 
-createApp(App).mount('#app')
-App.use(PrimeVue)
+const app = createApp(App)
+app.use(PrimeVue)
+app.mount('#app')
 

@@ -45,12 +45,21 @@ pub struct BoardSettings {
 }
 
 #[derive(Serialize, Deserialize)]
+pub struct ControllerSettings {
+    pub temperature_set_point_upper: f32,
+    pub temperature_set_point_lower: f32,
+    pub temperature_loop_mins: u64,
+    pub soil_loop_hours: u64,
+}
+
+#[derive(Serialize, Deserialize)]
 pub struct Configuration {
     pub board_settings: BoardSettings,
     pub relay_settings: RelaySettings,
     pub soil_moisture_settings: SoilMoistureSettings,
     pub thermistor_settings: ThermistorSettings,
     pub water_pump_settings: WaterPumpSettings,
+    pub controller_settings: ControllerSettings,
 }
 
 impl Configuration {
@@ -92,6 +101,12 @@ impl Default for Configuration {
             },
             water_pump_settings: WaterPumpSettings {
                 grams_per_millisecond: 0.05281,
+            },
+            controller_settings: ControllerSettings {
+                temperature_set_point_upper: 35.,
+                temperature_set_point_lower: 28.,
+                temperature_loop_mins: 60,
+                soil_loop_hours: 12,
             },
         }
     }

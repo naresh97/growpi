@@ -28,3 +28,9 @@ resistor = "R2"
 
 [water_pump_settings]
 grams_per_millisecond = 0.05280999839305878
+
+[controller_settings]
+temperature_set_point_upper = 35.0
+temperature_set_point_lower = 28.0
+temperature_loop_mins = 60
+soil_loop_hours = 12
