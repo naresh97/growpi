@@ -19,11 +19,16 @@ mod state;
 
 fn load_config() -> config::Configuration {
     let config = Configuration::from_file(std::path::Path::new("./growpi.toml"));
-    if let Err(config) = &config {
-        println!("Could not load config: {}", config);
+    match config {
+        Ok(config) => config,
+        Err(_) => {
+            let config = Configuration::default();
+            config
+                .save_to_file(std::path::Path::new("./growpi.toml"))
+                .expect("Could not create default config in ./growpi.toml");
+            config
+        }
     }
-
-    config.unwrap_or_default()
 }
 
 #[tokio::main(flavor = "current_thread")]

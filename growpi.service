@@ -7,6 +7,7 @@ Type=simple
 Restart=always
 RestartSec=10
 ExecStart=/opt/growpi/growpi
+WorkingDirectory=/opt/growpi
 
 [Install]
 WantedBy=mutli-user.target
