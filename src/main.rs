@@ -1,5 +1,4 @@
 #![feature(duration_constructors)]
-#![allow(dead_code)]
 
 use cli_mode::run_cli;
 use config::Configuration;

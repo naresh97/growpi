@@ -24,16 +24,6 @@ pub struct DataRecords {
 
 const FILE_PATH: &str = "./growpi.datalog.csv";
 impl DataRecords {
-    fn load() -> GenericResult<DataRecords> {
-        let mut data = csv::ReaderBuilder::new()
-            .has_headers(true)
-            .from_path(FILE_PATH)?;
-        let mut result = Vec::new();
-        for record in data.deserialize() {
-            result.push(record?);
-        }
-        Ok(DataRecords { records: result })
-    }
     pub fn push(program_state: ProgramStateShared) -> GenericResult<()> {
         let program_state = lock_state(&program_state)?;
         let config = &program_state.config;
