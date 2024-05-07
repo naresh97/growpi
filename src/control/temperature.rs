@@ -21,17 +21,16 @@ fn temperature_control(program_state: ProgramStateShared) -> GenericResult<()> {
 }
 
 pub async fn temperature_control_loop(program_state: ProgramStateShared) {
-    let loop_duration = program_state
-        .lock()
-        .map(|program_state| {
-            program_state
-                .config
-                .controller_settings
-                .temperature_loop_mins
-        })
-        .unwrap_or(1);
-
     loop {
+        let loop_duration = program_state
+            .lock()
+            .map(|program_state| {
+                program_state
+                    .config
+                    .controller_settings
+                    .temperature_loop_mins
+            })
+            .unwrap_or(1);
         let _ = temperature_control(program_state.clone());
         tokio::time::sleep(Duration::from_mins(loop_duration)).await;
     }

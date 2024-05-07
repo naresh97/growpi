@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::error::GenericResult;
+use crate::{error::GenericResult, io::ImageResolution};
 
 #[derive(Serialize, Deserialize)]
 pub struct RelaySettings {
@@ -58,6 +58,8 @@ pub struct ControllerSettings {
 pub struct DataLoggingSettings {
     pub enabled: bool,
     pub frequency_mins: u64,
+    pub imaging_frequency_minutes: u64,
+    pub imaging_resolution: ImageResolution,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -128,6 +130,8 @@ impl Default for Configuration {
             data_logging_settings: DataLoggingSettings {
                 enabled: true,
                 frequency_mins: 60,
+                imaging_frequency_minutes: 60,
+                imaging_resolution: ImageResolution::R480p,
             },
             server_settings: ServerSettings { port: 2205 },
         }

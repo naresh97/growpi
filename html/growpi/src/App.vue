@@ -1,5 +1,6 @@
 <script>
 import Button from 'primevue/button';
+import Image from 'primevue/image';
 import InputNumber from 'primevue/inputnumber';
 import ToggleButton from 'primevue/togglebutton';
 export default {
@@ -12,9 +13,10 @@ export default {
       water_primed: false,
       fan_state: false,
       pumpAmount: 150,
+      image_src: "/image"
     };
   },
-  components: { ToggleButton, Button, InputNumber },
+  components: { ToggleButton, Button, InputNumber, Image },
   methods: {
     async updateInfo() {
       let info = await receiveInfo();
@@ -24,6 +26,9 @@ export default {
       this.temperature = info.temperature;
       this.soil_moisture = info.soil_moisture;
     },
+    async updateImage() {
+      this.image_src = "/image#" + new Date().getTime();
+    },
     async sendSwitch(name, state) {
       await fetch("/api/switch/" + name + "/" + to_state(state));
       await this.updateInfo();
@@ -32,11 +37,17 @@ export default {
       console.log("Pumping: " + this.pumpAmount);
       await fetch("/api/pump/" + this.pumpAmount);
       await this.updateInfo();
+    },
+    async refreshImage() {
+      await fetch("/api/refresh_image");
+      this.updateImage();
     }
   },
   created() {
     this.updateInfo();
+    this.updateImage();
     setInterval(this.updateInfo, 1000);
+    setInterval(this.updateImage, 10000);
   }
 }
 
@@ -105,6 +116,13 @@ function to_bool(state) {
         <br /><br />
         <InputNumber class="whole-cell" v-model="pumpAmount" :allowEmpty="false" inputId="integeronly" suffix=" grams"
           :min="100" :max="300" />
+      </td>
+    </tr>
+    <tr>
+      <td colspan="2">
+        <Image :src="image_src" />
+        <br /><br />
+        <Button @click="refreshImage();" label="Refresh Image" />
       </td>
     </tr>
   </table>

@@ -4,7 +4,6 @@ use chrono::Utc;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    config::DataLoggingSettings,
     error::GenericResult,
     sensors,
     state::{lock_state, ProgramStateShared},
@@ -43,15 +42,14 @@ impl DataRecords {
 
 pub async fn data_logging_loop(program_state: ProgramStateShared) {
     loop {
-        let DataLoggingSettings {
-            enabled,
-            frequency_mins,
-        } = lock_state(&program_state)
-            .map(|state| state.config.data_logging_settings.clone())
-            .unwrap_or(DataLoggingSettings {
-                enabled: true,
-                frequency_mins: 60,
-            });
+        let (enabled, frequency_mins) = lock_state(&program_state)
+            .map(|state| {
+                (
+                    state.config.data_logging_settings.enabled,
+                    state.config.data_logging_settings.frequency_mins,
+                )
+            })
+            .unwrap_or((true, 60));
         if enabled {
             let _ = DataRecords::push(program_state.clone());
         }

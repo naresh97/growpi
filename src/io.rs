@@ -1,6 +1,8 @@
 use ads1x1x::{Ads1x1x, ChannelSelection, DynamicOneShot};
+use async_process::Command;
 use nb::block;
 use rppal::gpio::{Gpio, OutputPin};
+use serde::{Deserialize, Serialize};
 
 use crate::{config::*, error::GenericResult};
 
@@ -92,4 +94,43 @@ impl Relay {
             .as_mut()
             .ok_or("Pin not configured.")?)
     }
+}
+
+#[allow(dead_code)]
+#[derive(Clone, Serialize, Deserialize)]
+pub enum ImageResolution {
+    R1080p,
+    R720p,
+    R480p,
+    R360p,
+}
+impl ImageResolution {
+    fn get_width_height(&self) -> (u64, u64) {
+        match self {
+            ImageResolution::R1080p => (1920, 1080),
+            ImageResolution::R720p => (1280, 720),
+            ImageResolution::R480p => (640, 480),
+            ImageResolution::R360p => (480, 360),
+        }
+    }
+}
+pub async fn capture_image(
+    resolution: &ImageResolution,
+    path: &std::path::Path,
+) -> GenericResult<()> {
+    let path = std::path::absolute(path)?;
+    let (width, height) = resolution.get_width_height();
+    Command::new("/usr/bin/libcamera-jpeg")
+        .arg("-o")
+        .arg(path.clone())
+        .arg("-t")
+        .arg("1")
+        .arg("--width")
+        .arg(width.to_string())
+        .arg("--height")
+        .arg(height.to_string())
+        .status()
+        .await?
+        .exit_ok()?;
+    Ok(())
 }

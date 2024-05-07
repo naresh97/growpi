@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use tower_http::cors::{Any, CorsLayer};
 
 use crate::{
-    actuators,
+    actuators, control,
     error::GenericResult,
     io::RelaySwitchState,
     sensors,
@@ -36,6 +36,8 @@ fn setup_router(program_state: ProgramStateShared) -> Router {
         .route("/api/info", get(info_handler))
         .route("/api/switch/:device/:state", get(switch_handler))
         .route("/api/pump/:quantity", get(pump_handler))
+        .route("/api/refresh_image", get(image_refresh_handler))
+        .route("/image", get(image_handler))
         .route("/*path", get(site_handler))
         .route("/", get(root_handler))
         .with_state(program_state)
@@ -138,4 +140,19 @@ fn serve_site(path: Option<String>) -> Response {
             .append(header::CONTENT_TYPE, header_value);
     }
     response
+}
+
+async fn image_handler() -> Response {
+    let bytes = std::fs::read(control::imaging::get_image_path());
+    let response = bytes.map(|bytes| {
+        let mut r = bytes.into_response();
+        r.headers_mut()
+            .append(header::CONTENT_TYPE, HeaderValue::from_static("image/jpeg"));
+        r
+    });
+    response.unwrap_or_else(|e| format!("Error: {}", e).into_response())
+}
+async fn image_refresh_handler(State(program_state): State<ProgramStateShared>) -> Response {
+    let _ = control::imaging::save_latest_image(program_state).await;
+    StatusCode::OK.into_response()
 }
