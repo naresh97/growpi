@@ -37,6 +37,10 @@ fn setup_router(program_state: ProgramStateShared) -> Router {
         .route("/api/switch/:device/:state", get(switch_handler))
         .route("/api/pump/:quantity", get(pump_handler))
         .route("/api/refresh_image", get(image_refresh_handler))
+        .route(
+            "/api/watering_history/:entries",
+            get(watering_history_handler),
+        )
         .route("/image", get(image_handler))
         .route("/*path", get(site_handler))
         .route("/", get(root_handler))
@@ -155,4 +159,25 @@ async fn image_handler() -> Response {
 async fn image_refresh_handler(State(program_state): State<ProgramStateShared>) -> Response {
     let _ = control::imaging::save_latest_image(program_state).await;
     StatusCode::OK.into_response()
+}
+
+async fn watering_history_handler(
+    Path(entries): Path<usize>,
+    State(program_state): State<ProgramStateShared>,
+) -> Response {
+    let records = lock_state(&program_state).map(|state| {
+        state
+            .history
+            .watering_records
+            .iter()
+            .rev()
+            .take(entries)
+            .cloned()
+            .collect::<Vec<_>>()
+    });
+    let records = records.map(Json);
+    match records {
+        Ok(records) => records.into_response(),
+        Err(_) => StatusCode::SERVICE_UNAVAILABLE.into_response(),
+    }
 }

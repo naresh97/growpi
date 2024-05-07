@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::error::GenericResult;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct WateringRecord {
     pub time: i64,
     pub amount: u64,

@@ -3,6 +3,7 @@ import Button from 'primevue/button';
 import Image from 'primevue/image';
 import InputNumber from 'primevue/inputnumber';
 import ToggleButton from 'primevue/togglebutton';
+import format from 'date-format'
 export default {
   data() {
     return {
@@ -13,7 +14,8 @@ export default {
       water_primed: false,
       fan_state: false,
       pumpAmount: 150,
-      image_src: "/image"
+      image_src: "/image",
+      watering_history: [{ time: 1714976340, amount: 150, moisture_before_watering: 0.7490353 }]
     };
   },
   components: { ToggleButton, Button, InputNumber, Image },
@@ -25,6 +27,9 @@ export default {
       this.pump_state = to_bool(info.pump_state);
       this.temperature = info.temperature;
       this.soil_moisture = info.soil_moisture;
+
+      let response = await fetch("/api/watering_history/10");
+      this.watering_history = await response.json();
     },
     async updateImage() {
       this.image_src = "/image#" + new Date().getTime();
@@ -41,6 +46,9 @@ export default {
     async refreshImage() {
       await fetch("/api/refresh_image");
       this.updateImage();
+    },
+    formatDate(timestamp) {
+      return format.asString('dd-MM-yyyy at hh:mm', new Date(timestamp * 1000));
     }
   },
   created() {
@@ -123,6 +131,25 @@ function to_bool(state) {
         <Image :src="image_src" />
         <br /><br />
         <Button @click="refreshImage();" label="Refresh Image" />
+      </td>
+    </tr>
+    <tr>
+      <td colspan="2">
+        <b>Watering History</b>
+        <br /><br />
+        <table class="main-table">
+          <tr v-for="record in watering_history">
+            <td>
+              {{ formatDate(record.time) }}
+            </td>
+            <td>
+              {{ record.amount }} grams
+            </td>
+            <td>
+              {{ Math.round(record.moisture_before_watering * 100 * 100) / 100 }}% moisture
+            </td>
+          </tr>
+        </table>
       </td>
     </tr>
   </table>
