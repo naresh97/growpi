@@ -13,3 +13,15 @@ pub fn get_temperature() -> GenericResult<f32> {
         - 273.15;
     Ok(temperature)
 }
+
+pub fn get_soil_moisture() -> GenericResult<f32> {
+    let voltage = get_input_voltage(SOIL_MOISTURE_PIN)?;
+
+    const VOLTAGE_ZERO_HUMIDITY: f32 = (SOIL_NOMINAL_MOISTURE_VOLTAGE
+        - SOIL_MOISTURE_100_VOLTAGE * SOIL_NOMINAL_MOISTURE)
+        / (1. - SOIL_NOMINAL_MOISTURE);
+
+    let humidity =
+        (voltage - VOLTAGE_ZERO_HUMIDITY) / (SOIL_MOISTURE_100_VOLTAGE - VOLTAGE_ZERO_HUMIDITY);
+    Ok(humidity)
+}

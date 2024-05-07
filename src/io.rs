@@ -5,9 +5,12 @@ use rppal::gpio::{Gpio, OutputPin};
 use crate::{config::*, error::GenericResult};
 
 pub fn get_input_voltage(pin: u8) -> GenericResult<f32> {
-    const ADS1115_DEFAULT_RANGE: f32 = 2.048;
+    const ADS1115_DEFAULT_RANGE: f32 = 4.096;
+
     let adc = rppal::i2c::I2c::new()?;
     let mut adc = Ads1x1x::new_ads1115(adc, ads1x1x::SlaveAddr::Alternative(false, false));
+    adc.set_full_scale_range(ads1x1x::FullScaleRange::Within4_096V)
+        .map_err(|_| "Could not set full scale range")?;
     let channel: ChannelSelection = match pin {
         0 => ChannelSelection::SingleA0,
         1 => ChannelSelection::SingleA1,
