@@ -58,7 +58,6 @@ async fn switch_handler(
         let mut program_state = program_state.lock().map_err(lock_err)?;
         match device.as_str() {
             "lights" => actuators::switch_lights(state, &mut program_state)?,
-            "pump" => actuators::switch_water_pump(state, &mut program_state)?,
             "fan" => actuators::switch_fan(state, &mut program_state)?,
             _ => (),
         }

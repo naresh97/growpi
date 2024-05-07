@@ -13,8 +13,7 @@ fn light_control(program_state: ProgramStateShared) -> GenericResult<()> {
     let mut program_state = program_state.lock().map_err(lock_err)?;
     let local = Local::now();
     let hour = local.time().hour();
-    const HOURS_ON: u32 = 24;
-    if hour <= HOURS_ON {
+    if hour as u64 <= program_state.config.controller_settings.sunlight_hours {
         actuators::switch_lights(crate::io::RelaySwitchState::On, &mut program_state)?;
     } else {
         actuators::switch_lights(crate::io::RelaySwitchState::Off, &mut program_state)?;

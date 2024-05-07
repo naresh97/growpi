@@ -33,4 +33,5 @@ grams_per_millisecond = 0.05280999839305878
 temperature_set_point_upper = 35.0
 temperature_set_point_lower = 28.0
 temperature_loop_mins = 60
+sunlight_hours = 24
 soil_loop_hours = 12

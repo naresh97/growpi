@@ -1,14 +1,20 @@
 use std::sync::{Arc, Mutex};
 
-use crate::{config::Configuration, error::GenericResult, io};
+use crate::{config::Configuration, error::GenericResult, history::History, io};
 
 pub type ProgramStateShared = Arc<Mutex<ProgramState>>;
 pub struct ProgramState {
     pub config: Configuration,
     pub relay: io::Relay,
+    pub history: History,
 }
 
 pub fn init_state(config: Configuration) -> GenericResult<ProgramStateShared> {
     let relay = io::Relay::new(&config)?;
-    Ok(Arc::new(Mutex::new(ProgramState { config, relay })))
+    let history = History::load()?;
+    Ok(Arc::new(Mutex::new(ProgramState {
+        config,
+        relay,
+        history,
+    })))
 }

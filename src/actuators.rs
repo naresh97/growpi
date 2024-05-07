@@ -1,6 +1,8 @@
 use std::{thread, time::Duration};
 
-use crate::{error::GenericResult, io::RelaySwitchState, state::ProgramState};
+use crate::{
+    error::GenericResult, history::WateringRecord, io::RelaySwitchState, state::ProgramState,
+};
 
 pub fn switch_lights(
     state: RelaySwitchState,
@@ -50,5 +52,11 @@ pub fn pump_water(water_mass_g: u16, program_state: &mut ProgramState) -> Generi
     switch_water_pump(RelaySwitchState::On, program_state)?;
     thread::sleep(duration);
     switch_water_pump(RelaySwitchState::Off, program_state)?;
+
+    program_state
+        .history
+        .watering_records
+        .push(WateringRecord::new(water_mass_g.into()));
+
     Ok(())
 }

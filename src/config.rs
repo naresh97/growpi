@@ -49,6 +49,7 @@ pub struct ControllerSettings {
     pub temperature_set_point_upper: f32,
     pub temperature_set_point_lower: f32,
     pub temperature_loop_mins: u64,
+    pub sunlight_hours: u64,
     pub soil_loop_hours: u64,
 }
 
@@ -107,6 +108,7 @@ impl Default for Configuration {
                 temperature_set_point_lower: 28.,
                 temperature_loop_mins: 60,
                 soil_loop_hours: 12,
+                sunlight_hours: 24,
             },
         }
     }
