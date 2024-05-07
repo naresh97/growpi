@@ -4,29 +4,25 @@ use rustyline::{config::Configurer, error::ReadlineError, history::FileHistory};
 
 use crate::{
     actuators,
-    config::Configuration,
-    error::GenericResult,
+    error::{lock_err, GenericResult},
     io::{self, get_input_voltage},
     sensors,
+    state::ProgramStateShared,
 };
 
 struct LoopFlags {
     exit: bool,
 }
 
-fn process_input(
-    input: String,
-    program_state: &mut ProgramState,
-    config: &Configuration,
-) -> GenericResult<LoopFlags> {
+fn process_input(input: String, program_state: ProgramStateShared) -> GenericResult<LoopFlags> {
     let args = input.split(' ').collect::<Vec<_>>();
     let main_command = *args.first().ok_or("No main command found.")?;
     match main_command {
         "ana" => command_ana(&args)?,
-        "rel" => command_rel(&args, program_state, config)?,
-        "soil" => command_soil(&args, config)?,
-        "temp" => command_temp(&args, config)?,
-        "pump" => command_pump(&args, program_state, config)?,
+        "rel" => command_rel(&args, program_state)?,
+        "soil" => command_soil(&args, program_state)?,
+        "temp" => command_temp(&args, program_state)?,
+        "pump" => command_pump(&args, program_state)?,
         "exit" => return Ok(LoopFlags { exit: true }),
         _ => return Err("Unknown main command".into()),
     };
@@ -34,11 +30,9 @@ fn process_input(
     Ok(LoopFlags { exit: false })
 }
 
-fn command_pump(
-    args: &[&str],
-    program_state: &mut ProgramState,
-    config: &Configuration,
-) -> GenericResult<()> {
+fn command_pump(args: &[&str], program_state: ProgramStateShared) -> GenericResult<()> {
+    let mut program_state = program_state.lock().map_err(lock_err)?;
+
     let use_grams = args
         .get(2)
         .map(|arg| matches!(*arg, "grams"))
@@ -46,26 +40,27 @@ fn command_pump(
 
     if use_grams {
         let grams: u16 = args.get(1).ok_or("No mass specified.")?.parse()?;
-        actuators::pump_water(grams, &mut program_state.relay, config)?;
+        actuators::pump_water(grams, &mut program_state)?;
         return Ok(());
     }
 
     let duration_ms: u64 = args.get(1).ok_or("No duration specified.")?.parse()?;
     let duration = Duration::from_millis(duration_ms);
-    actuators::switch_water_pump(&mut program_state.relay, io::RelaySwitchState::On, config)?;
+    actuators::switch_water_pump(io::RelaySwitchState::On, &mut program_state)?;
     thread::sleep(duration);
-    actuators::switch_water_pump(&mut program_state.relay, io::RelaySwitchState::Off, config)?;
+    actuators::switch_water_pump(io::RelaySwitchState::Off, &mut program_state)?;
 
     Ok(())
 }
 
-fn command_temp(args: &[&str], config: &Configuration) -> GenericResult<()> {
+fn command_temp(args: &[&str], program_state: ProgramStateShared) -> GenericResult<()> {
     let show_loop = args
         .get(1)
         .map(|arg| matches!(*arg, "loop"))
         .unwrap_or(false);
     loop {
-        let temperature = sensors::get_temperature(config)?;
+        let program_state = program_state.lock().map_err(lock_err)?;
+        let temperature = sensors::get_temperature(&program_state.config)?;
         println!("Temperature: {}C", temperature);
         if !show_loop {
             break;
@@ -75,14 +70,15 @@ fn command_temp(args: &[&str], config: &Configuration) -> GenericResult<()> {
     Ok(())
 }
 
-fn command_soil(args: &[&str], config: &Configuration) -> GenericResult<()> {
+fn command_soil(args: &[&str], program_state: ProgramStateShared) -> GenericResult<()> {
     let show_loop = args
         .get(1)
         .map(|arg| matches!(*arg, "loop"))
         .unwrap_or(false);
 
     loop {
-        let humidity = sensors::get_soil_moisture(config)?;
+        let program_state = program_state.lock().map_err(lock_err)?;
+        let humidity = sensors::get_soil_moisture(&program_state.config)?;
         println!("Soil humidity: {}", humidity);
         if !show_loop {
             break;
@@ -93,11 +89,9 @@ fn command_soil(args: &[&str], config: &Configuration) -> GenericResult<()> {
     Ok(())
 }
 
-fn command_rel(
-    args: &[&str],
-    program_state: &mut ProgramState,
-    config: &Configuration,
-) -> GenericResult<()> {
+fn command_rel(args: &[&str], program_state: ProgramStateShared) -> GenericResult<()> {
+    let mut program_state = program_state.lock().map_err(lock_err)?;
+
     let pin = args
         .get(1)
         .ok_or("Must specify pin number.")?
@@ -117,11 +111,11 @@ fn command_rel(
     match switch_state {
         Some(state) => {
             println!("Switching relay");
-            program_state.relay.switch(pin, state?, config)?
+            program_state.relay.switch(pin, state?)?
         }
         None => {
             println!("Toggling relay");
-            program_state.relay.toggle(pin, config)?
+            program_state.relay.toggle(pin)?
         }
     };
 
@@ -152,17 +146,13 @@ fn command_ana(args: &[&str]) -> GenericResult<()> {
     Ok(())
 }
 
-fn cli_loop(
-    rl: &mut CLIEditor,
-    program_state: &mut ProgramState,
-    config: &Configuration,
-) -> GenericResult<LoopFlags> {
+fn cli_loop(rl: &mut CLIEditor, program_state: ProgramStateShared) -> GenericResult<LoopFlags> {
     let readline = rl.readline("growpi>> ");
 
     match readline {
         Ok(line) => {
             rl.add_history_entry(line.as_str())?;
-            process_input(line, program_state, config)
+            process_input(line, program_state)
         }
         Err(ReadlineError::Eof) => Ok(LoopFlags { exit: true }),
         Err(_) => Err("No input".into()),
@@ -175,29 +165,12 @@ fn init_readline() -> GenericResult<CLIEditor> {
     rl.set_max_history_size(10)?;
     Ok(rl)
 }
-struct ProgramState {
-    relay: io::Relay,
-}
 
-fn init_state(config: &Configuration) -> GenericResult<ProgramState> {
-    Ok(ProgramState {
-        relay: io::Relay::new(config)?,
-    })
-}
-
-pub fn run_cli() {
+pub fn run_cli(program_state: ProgramStateShared) {
     let mut rl = init_readline().unwrap();
 
-    let config = Configuration::from_file(std::path::Path::new("./growpi.toml"));
-    if let Err(config) = &config {
-        println!("Could not load config: {}", config);
-    }
-    let config = config.unwrap_or_default();
-
-    let mut program_state = init_state(&config).unwrap();
-
     'cli_loop: loop {
-        match cli_loop(&mut rl, &mut program_state, &config) {
+        match cli_loop(&mut rl, program_state.clone()) {
             Ok(loop_flags) => {
                 if loop_flags.exit {
                     println!("Leaving CLI");

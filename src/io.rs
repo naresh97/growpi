@@ -59,19 +59,14 @@ impl Relay {
             relay_pins: output_pins,
         })
     }
-    pub fn toggle(&mut self, pin: u8, config: &Configuration) -> GenericResult<()> {
-        let pin = self.get_output_pin(pin, config)?;
+    pub fn toggle(&mut self, pin: u8) -> GenericResult<()> {
+        let pin = self.get_output_pin(pin)?;
         pin.toggle();
         Ok(())
     }
 
-    pub fn switch(
-        &mut self,
-        pin: u8,
-        state: RelaySwitchState,
-        config: &Configuration,
-    ) -> GenericResult<()> {
-        let pin = self.get_output_pin(pin, config)?;
+    pub fn switch(&mut self, pin: u8, state: RelaySwitchState) -> GenericResult<()> {
+        let pin = self.get_output_pin(pin)?;
         match state {
             RelaySwitchState::On => pin.set_low(),
             RelaySwitchState::Off => pin.set_high(),
@@ -79,15 +74,11 @@ impl Relay {
         Ok(())
     }
 
-    fn get_output_pin(&mut self, pin: u8, config: &Configuration) -> GenericResult<&mut OutputPin> {
+    fn get_output_pin(&mut self, pin: u8) -> GenericResult<&mut OutputPin> {
         Ok(self
             .relay_pins
             .get_mut(pin as usize)
-            .ok_or(format!(
-                "Pin {} not within pin array with length {}",
-                pin,
-                config.relay_settings.relay_gpio_pins.len()
-            ))?
+            .ok_or(format!("Pin {} not within pin array", pin,))?
             .as_mut()
             .ok_or("Pin not configured.")?)
     }
