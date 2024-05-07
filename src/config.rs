@@ -28,6 +28,11 @@ pub struct SoilMoistureSettings {
 }
 
 #[derive(Serialize, Deserialize)]
+pub struct WaterPumpSettings {
+    pub grams_per_millisecond: f32,
+}
+
+#[derive(Serialize, Deserialize)]
 pub struct BoardSettings {
     pub logic_level: f32,
 }
@@ -38,6 +43,7 @@ pub struct Configuration {
     pub relay_settings: RelaySettings,
     pub soil_moisture_settings: SoilMoistureSettings,
     pub thermistor_settings: ThermistorSettings,
+    pub water_pump_settings: WaterPumpSettings,
 }
 
 impl Configuration {
@@ -75,6 +81,9 @@ impl Default for Configuration {
                 nominal_resistance: 10_000.,
                 nominal_temperature: 298.15,
                 thermal_constant: 3950.,
+            },
+            water_pump_settings: WaterPumpSettings {
+                grams_per_millisecond: 0.05281,
             },
         }
     }

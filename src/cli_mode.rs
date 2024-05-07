@@ -3,6 +3,7 @@ use std::{thread, time::Duration};
 use rustyline::{config::Configurer, error::ReadlineError, history::FileHistory};
 
 use crate::{
+    actuators,
     config::Configuration,
     error::GenericResult,
     io::{self, get_input_voltage},
@@ -25,11 +26,37 @@ fn process_input(
         "rel" => command_rel(&args, program_state, config)?,
         "soil" => command_soil(&args, config)?,
         "temp" => command_temp(&args, config)?,
+        "pump" => command_pump(&args, program_state, config)?,
         "exit" => return Ok(LoopFlags { exit: true }),
         _ => return Err("Unknown main command".into()),
     };
 
     Ok(LoopFlags { exit: false })
+}
+
+fn command_pump(
+    args: &[&str],
+    program_state: &mut ProgramState,
+    config: &Configuration,
+) -> GenericResult<()> {
+    let use_grams = args
+        .get(2)
+        .map(|arg| matches!(*arg, "grams"))
+        .unwrap_or(false);
+
+    if use_grams {
+        let grams: u16 = args.get(1).ok_or("No mass specified.")?.parse()?;
+        actuators::pump_water(grams, &mut program_state.relay, config)?;
+        return Ok(());
+    }
+
+    let duration_ms: u64 = args.get(1).ok_or("No duration specified.")?.parse()?;
+    let duration = Duration::from_millis(duration_ms);
+    actuators::switch_water_pump(&mut program_state.relay, io::RelaySwitchState::On, config)?;
+    thread::sleep(duration);
+    actuators::switch_water_pump(&mut program_state.relay, io::RelaySwitchState::Off, config)?;
+
+    Ok(())
 }
 
 fn command_temp(args: &[&str], config: &Configuration) -> GenericResult<()> {

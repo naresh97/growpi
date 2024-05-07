@@ -1,21 +1,29 @@
 [board_settings]
-logic_level = 3.3
+logic_level = 3.299999952316284
 
 [relay_settings]
 light_pin = 0
 fan_pin = 1
 water_pump_pin = 2
-relay_gpio_pins = [17, 27, 22, -1]
+relay_gpio_pins = [
+    17,
+    27,
+    22,
+    -1,
+]
 
 [soil_moisture_settings]
 pin = 1
-voltage_100 = 1.417
-voltage_nominal = 2.823
-moisture_nominal = 0.41
+voltage_100 = 1.4170000553131104
+voltage_nominal = 2.822999954223633
+moisture_nominal = 0.4099999964237213
 
 [thermistor_settings]
 pin = 0
 voltage_divider_resistance = 9700.0
 nominal_resistance = 10000.0
-nominal_temperature = 298.15
+nominal_temperature = 298.1499938964844
 thermal_constant = 3950.0
+
+[water_pump_settings]
+milliseconds_to_grams = 0.05280999839305878
