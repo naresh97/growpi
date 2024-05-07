@@ -42,16 +42,16 @@ impl DataRecords {
 }
 
 pub async fn data_logging_loop(program_state: ProgramStateShared) {
-    let DataLoggingSettings {
-        enabled,
-        frequency_mins,
-    } = lock_state(&program_state)
-        .map(|state| state.config.data_logging_settings.clone())
-        .unwrap_or(DataLoggingSettings {
-            enabled: true,
-            frequency_mins: 60,
-        });
     loop {
+        let DataLoggingSettings {
+            enabled,
+            frequency_mins,
+        } = lock_state(&program_state)
+            .map(|state| state.config.data_logging_settings.clone())
+            .unwrap_or(DataLoggingSettings {
+                enabled: true,
+                frequency_mins: 60,
+            });
         if enabled {
             let _ = DataRecords::push(program_state.clone());
         }
