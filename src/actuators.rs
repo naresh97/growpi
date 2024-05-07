@@ -1,7 +1,8 @@
 use std::{thread, time::Duration};
 
 use crate::{
-    error::GenericResult, history::WateringRecord, io::RelaySwitchState, state::ProgramState,
+    error::GenericResult, history::WateringRecord, io::RelaySwitchState, sensors,
+    state::ProgramState,
 };
 
 pub fn switch_lights(
@@ -49,6 +50,7 @@ pub fn pump_water(water_mass_g: u16, program_state: &mut ProgramState) -> Generi
             .grams_per_millisecond;
     let duration_ms = duration_ms.round() as u64;
     let duration = Duration::from_millis(duration_ms);
+    let moisture_before_watering = sensors::get_soil_moisture(&program_state.config)?;
     switch_water_pump(RelaySwitchState::On, program_state)?;
     thread::sleep(duration);
     switch_water_pump(RelaySwitchState::Off, program_state)?;
@@ -56,7 +58,10 @@ pub fn pump_water(water_mass_g: u16, program_state: &mut ProgramState) -> Generi
     program_state
         .history
         .watering_records
-        .push(WateringRecord::new(water_mass_g.into()));
+        .push(WateringRecord::new(
+            water_mass_g.into(),
+            moisture_before_watering,
+        ));
     program_state.history.save()?;
 
     Ok(())

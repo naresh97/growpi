@@ -7,13 +7,15 @@ use crate::error::GenericResult;
 pub struct WateringRecord {
     pub time: i64,
     pub amount: u64,
+    pub moisture_before_watering: f32,
 }
 
 impl WateringRecord {
-    pub fn new(amount: u64) -> WateringRecord {
+    pub fn new(amount: u64, moisture_before_watering: f32) -> WateringRecord {
         WateringRecord {
             time: Utc::now().timestamp(),
             amount,
+            moisture_before_watering,
         }
     }
 }
@@ -64,6 +66,7 @@ mod tests {
         history.watering_records.push(WateringRecord {
             time: Local::now().timestamp(),
             amount: 456,
+            moisture_before_watering: 71.1,
         });
         history.save().unwrap();
     }

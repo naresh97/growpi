@@ -10,12 +10,13 @@ mod actuators;
 mod cli_mode;
 mod config;
 mod control;
+mod data_logging;
 mod error;
+mod history;
 mod io;
 mod sensors;
 mod server;
 mod state;
-mod history;
 
 fn load_config() -> config::Configuration {
     let config = Configuration::from_file(std::path::Path::new("./growpi.toml"));

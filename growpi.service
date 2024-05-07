@@ -1,0 +1,12 @@
+[Unit]
+Description=GrowPi Server and Control
+After=network.target
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=10
+ExecStart=/opt/growpi/growpi
+
+[Install]
+WantedBy=mutli-user.target
