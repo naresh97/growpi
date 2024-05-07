@@ -1,11 +1,15 @@
-use std::{error::Error, io, thread, time::Duration};
+#![allow(dead_code)]
+use std::{error::Error, thread, time::Duration};
 
 use ads1x1x::{Ads1x1x, ChannelSelection, DynamicOneShot};
 use nb::block;
-use rppal::{
-    gpio::{Gpio, OutputPin},
-    i2c::I2c,
-};
+use rppal::gpio::{Gpio, OutputPin};
+
+mod actuators;
+mod config;
+mod error;
+mod io;
+mod sensors;
 
 type GenericResult<T> = Result<T, Box<dyn Error>>;
 
@@ -37,7 +41,7 @@ fn main() -> GenericResult<()> {
     loop {
         println!("Enter command: ");
         let mut input_string = String::new();
-        io::stdin().read_line(&mut input_string)?;
+        std::io::stdin().read_line(&mut input_string)?;
 
         match process_command(input_string, &mut program_state) {
             Ok(to_exit) => {
