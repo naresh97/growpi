@@ -75,6 +75,15 @@ impl Relay {
         Ok(())
     }
 
+    pub fn get_state(&mut self, pin: u8) -> GenericResult<RelaySwitchState> {
+        let pin = self.get_output_pin(pin)?;
+        if pin.is_set_high() {
+            Ok(RelaySwitchState::Off)
+        } else {
+            Ok(RelaySwitchState::On)
+        }
+    }
+
     fn get_output_pin(&mut self, pin: u8) -> GenericResult<&mut OutputPin> {
         Ok(self
             .relay_pins

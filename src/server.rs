@@ -1,15 +1,17 @@
 use axum::{
     extract::{Path, State},
     http::StatusCode,
-    response::{Html, IntoResponse},
+    response::IntoResponse,
     routing::get,
-    Router,
+    Json, Router,
 };
+use serde::{Deserialize, Serialize};
 
 use crate::{
     actuators,
     error::{lock_err, GenericResult},
     io::RelaySwitchState,
+    sensors,
     state::ProgramStateShared,
 };
 
@@ -21,9 +23,25 @@ pub async fn run_server(program_state: ProgramStateShared) {
 
 fn setup_router(program_state: ProgramStateShared) -> Router {
     Router::new()
-        .route("/", get(handler))
+        .route("/info", get(info_handler))
         .route("/switch/:device/:state", get(switch_handler))
+        .route("/pump/:quantity", get(pump_handler))
         .with_state(program_state)
+}
+
+async fn pump_handler(
+    Path(quantity): Path<u16>,
+    State(program_state): State<ProgramStateShared>,
+) -> impl IntoResponse {
+    let exec = || -> GenericResult<()> {
+        let mut program_state = program_state.lock().map_err(lock_err)?;
+        actuators::pump_water(quantity, &mut program_state)?;
+        Ok(())
+    };
+    match exec() {
+        Ok(_) => StatusCode::OK,
+        Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
+    }
 }
 
 async fn switch_handler(
@@ -46,6 +64,31 @@ async fn switch_handler(
     }
 }
 
-async fn handler() -> Html<&'static str> {
-    Html("hi")
+#[derive(Serialize, Deserialize)]
+struct Info {
+    temperature: f32,
+    soil_moisture: f32,
+    fan_state: RelaySwitchState,
+    light_state: RelaySwitchState,
+    pump_state: RelaySwitchState,
+}
+
+async fn info_handler(
+    State(program_state): State<ProgramStateShared>,
+) -> Result<Json<Info>, String> {
+    let mut program_state = program_state.lock().map_err(lock_err)?;
+    let temperature = sensors::get_temperature(&program_state.config).map_err(|e| e.to_string())?;
+    let soil_moisture =
+        sensors::get_soil_moisture(&program_state.config).map_err(|e| e.to_string())?;
+    let fan_state = actuators::get_fan_state(&mut program_state).map_err(|e| e.to_string())?;
+    let light_state = actuators::get_light_state(&mut program_state).map_err(|e| e.to_string())?;
+    let pump_state =
+        actuators::get_water_pump_state(&mut program_state).map_err(|e| e.to_string())?;
+    Ok(Json(Info {
+        temperature,
+        soil_moisture,
+        fan_state,
+        light_state,
+        pump_state,
+    }))
 }

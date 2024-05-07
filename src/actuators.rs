@@ -26,6 +26,19 @@ pub fn switch_water_pump(
         .switch(program_state.config.relay_settings.water_pump_pin, state)
 }
 
+pub fn get_light_state(program_state: &mut ProgramState) -> GenericResult<RelaySwitchState> {
+    let pin = program_state.config.relay_settings.light_pin;
+    program_state.relay.get_state(pin)
+}
+pub fn get_water_pump_state(program_state: &mut ProgramState) -> GenericResult<RelaySwitchState> {
+    let pin = program_state.config.relay_settings.water_pump_pin;
+    program_state.relay.get_state(pin)
+}
+pub fn get_fan_state(program_state: &mut ProgramState) -> GenericResult<RelaySwitchState> {
+    let pin = program_state.config.relay_settings.fan_pin;
+    program_state.relay.get_state(pin)
+}
+
 pub fn pump_water(water_mass_g: u16, program_state: &mut ProgramState) -> GenericResult<()> {
     let duration_ms = water_mass_g as f32
         / program_state
