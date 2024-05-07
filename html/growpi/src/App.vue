@@ -25,12 +25,12 @@ export default {
       this.soil_moisture = info.soil_moisture;
     },
     async sendSwitch(name, state) {
-      await fetch("http://192.168.0.107:2205/switch/" + name + "/" + to_state(state));
+      await fetch("/api/switch/" + name + "/" + to_state(state));
       await this.updateInfo();
     },
     async pumpWater() {
       console.log("Pumping: " + this.pumpAmount);
-      await fetch("http://192.168.0.107:2205/pump/" + this.pumpAmount);
+      await fetch("/api/pump/" + this.pumpAmount);
       await this.updateInfo();
     }
   },
@@ -41,11 +41,11 @@ export default {
 }
 
 async function switchDevice(state) {
-  await fetch("http://192.168.0.107:2205/info")
+  await fetch("/api/info")
 }
 
 async function receiveInfo() {
-  const response = await fetch("http://192.168.0.107:2205/info");
+  const response = await fetch("/api/info");
   const info = await response.json();
   return info;
 }

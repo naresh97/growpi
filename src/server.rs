@@ -1,7 +1,7 @@
 use axum::{
     extract::{Path, State},
-    http::{Method, StatusCode},
-    response::IntoResponse,
+    http::{header, HeaderValue, Method, StatusCode},
+    response::{IntoResponse, Response},
     routing::get,
     Json, Router,
 };
@@ -17,8 +17,13 @@ use crate::{
 };
 
 pub async fn run_server(program_state: ProgramStateShared) {
-    let app: Router = setup_router(program_state);
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:2205").await.unwrap();
+    let app: Router = setup_router(program_state.clone());
+    let port = lock_state(&program_state)
+        .map(|state| state.config.server_settings.port)
+        .unwrap_or(2205);
+    let listener = tokio::net::TcpListener::bind(("0.0.0.0", port))
+        .await
+        .unwrap();
     axum::serve(listener, app).await.unwrap();
 }
 
@@ -28,9 +33,11 @@ fn setup_router(program_state: ProgramStateShared) -> Router {
         .allow_origin(Any);
 
     Router::new()
-        .route("/info", get(info_handler))
-        .route("/switch/:device/:state", get(switch_handler))
-        .route("/pump/:quantity", get(pump_handler))
+        .route("/api/info", get(info_handler))
+        .route("/api/switch/:device/:state", get(switch_handler))
+        .route("/api/pump/:quantity", get(pump_handler))
+        .route("/*path", get(site_handler))
+        .route("/", get(root_handler))
         .with_state(program_state)
         .layer(cors)
 }
@@ -96,4 +103,39 @@ async fn info_handler(
         light_state,
         pump_state,
     }))
+}
+
+#[derive(rust_embed::RustEmbed)]
+#[folder = "html/growpi/dist/"]
+struct Asset;
+
+async fn site_handler(Path(path): Path<String>) -> Response {
+    serve_site(Some(path))
+}
+async fn root_handler() -> Response {
+    serve_site(None)
+}
+
+fn serve_site(path: Option<String>) -> Response {
+    let path = match path {
+        Some(path) => path,
+        None => "index.html".to_string(),
+    };
+    let asset = Asset::get(&path).or_else(|| Asset::get("index.html"));
+
+    let content = asset
+        .as_ref()
+        .and_then(|file| std::str::from_utf8(&file.data).ok());
+    let content = content.unwrap_or("Sorry, couldn't load that asset :(");
+
+    let mut response = content.to_string().into_response();
+
+    let mime_type = mime_guess::from_path(path).first_or_text_plain();
+    let header_value = HeaderValue::from_str(mime_type.as_ref());
+    if let Ok(header_value) = header_value {
+        response
+            .headers_mut()
+            .append(header::CONTENT_TYPE, header_value);
+    }
+    response
 }

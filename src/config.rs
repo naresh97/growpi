@@ -60,6 +60,11 @@ pub struct DataLoggingSettings {
     pub frequency_mins: u64,
 }
 
+#[derive(Serialize, Deserialize, Clone)]
+pub struct ServerSettings {
+    pub port: u16,
+}
+
 #[derive(Serialize, Deserialize)]
 pub struct Configuration {
     pub board_settings: BoardSettings,
@@ -69,6 +74,7 @@ pub struct Configuration {
     pub water_pump_settings: WaterPumpSettings,
     pub controller_settings: ControllerSettings,
     pub data_logging_settings: DataLoggingSettings,
+    pub server_settings: ServerSettings,
 }
 
 impl Configuration {
@@ -123,6 +129,7 @@ impl Default for Configuration {
                 enabled: true,
                 frequency_mins: 60,
             },
+            server_settings: ServerSettings { port: 2205 },
         }
     }
 }
