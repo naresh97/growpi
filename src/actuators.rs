@@ -1,7 +1,7 @@
 use crate::{
     config::*,
+    error::GenericResult,
     io::{Relay, RelaySwitchState},
-    GenericResult,
 };
 
 pub fn switch_lights(relay: &mut Relay, state: RelaySwitchState) -> GenericResult<()> {

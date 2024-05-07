@@ -1,3 +1,3 @@
 use std::error::Error;
 
-type GenericResult<T> = Result<T, Box<dyn Error>>;
+pub type GenericResult<T> = Result<T, Box<dyn Error>>;

@@ -1,4 +1,4 @@
-use crate::{config::*, io::get_input_voltage, GenericResult};
+use crate::{config::*, error::GenericResult, io::get_input_voltage};
 
 pub fn get_temperature() -> GenericResult<f32> {
     const THERMISTOR_NOMINAL_RESISTANCE: f32 = 10_000.;

@@ -2,7 +2,7 @@ use ads1x1x::{Ads1x1x, ChannelSelection, DynamicOneShot};
 use nb::block;
 use rppal::gpio::{Gpio, OutputPin};
 
-use crate::{config::*, GenericResult};
+use crate::{config::*, error::GenericResult};
 
 pub fn get_input_voltage(pin: u8) -> GenericResult<f32> {
     const ADS1115_DEFAULT_RANGE: f32 = 2.048;
