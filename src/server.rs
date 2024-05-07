@@ -1,11 +1,12 @@
 use axum::{
     extract::{Path, State},
-    http::StatusCode,
+    http::{Method, StatusCode},
     response::IntoResponse,
     routing::get,
     Json, Router,
 };
 use serde::{Deserialize, Serialize};
+use tower_http::cors::{Any, CorsLayer};
 
 use crate::{
     actuators,
@@ -22,11 +23,16 @@ pub async fn run_server(program_state: ProgramStateShared) {
 }
 
 fn setup_router(program_state: ProgramStateShared) -> Router {
+    let cors = CorsLayer::new()
+        .allow_methods([Method::GET, Method::POST])
+        .allow_origin(Any);
+
     Router::new()
         .route("/info", get(info_handler))
         .route("/switch/:device/:state", get(switch_handler))
         .route("/pump/:quantity", get(pump_handler))
         .with_state(program_state)
+        .layer(cors)
 }
 
 async fn pump_handler(
