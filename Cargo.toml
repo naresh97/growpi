@@ -6,10 +6,8 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-rppal = "0.17.1"
+rppal = { version = "0.17", features = ["hal"] }
 #rumqttc = "0.24.0"
-interrupts = "0.1.5"
-libc = "0.2.153"
-
-[dependencies.linux_realtime]
-path = "../linux_realtime"
+libc = "0.2"
+ads1x1x = "0.2"
+nb = "1.1.0"
