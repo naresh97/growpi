@@ -1,23 +1,106 @@
-use crate::error::GenericResult;
+use rustyline::{config::Configurer, error::ReadlineError, history::FileHistory};
+
+use crate::{
+    error::GenericResult,
+    io::{self, get_input_voltage},
+};
 
 struct LoopFlags {
     exit: bool,
 }
 
-fn process_input(input: String) -> GenericResult<LoopFlags> {
-    todo!()
+fn process_input(input: String, program_state: &mut ProgramState) -> GenericResult<LoopFlags> {
+    let args = input.split(' ').collect::<Vec<_>>();
+    let main_command = *args.first().ok_or("No main command found.")?;
+    match main_command {
+        "ana" => command_ana(&args)?,
+        "rel" => command_rel(&args, program_state)?,
+        "exit" => return Ok(LoopFlags { exit: true }),
+        _ => return Err("Unknown main command".into()),
+    };
+
+    Ok(LoopFlags { exit: false })
 }
 
-fn cli_loop() -> GenericResult<LoopFlags> {
-    print!("Enter command: ");
-    let mut input_string = String::new();
-    std::io::stdin().read_line(&mut input_string)?;
-    process_input(input_string)
+fn command_rel(args: &[&str], program_state: &mut ProgramState) -> GenericResult<()> {
+    let pin = args
+        .get(1)
+        .ok_or("Must specify pin number.")?
+        .parse::<u8>()
+        .map_err(|_| "Not a valid pin number")?;
+
+    let switch_state = args.get(2).map(|arg| match *arg {
+        "1" => Ok(io::RelaySwitchState::On),
+        "on" => Ok(io::RelaySwitchState::On),
+        "true" => Ok(io::RelaySwitchState::On),
+        "0" => Ok(io::RelaySwitchState::Off),
+        "off" => Ok(io::RelaySwitchState::Off),
+        "false" => Ok(io::RelaySwitchState::Off),
+        _ => Err("Not a valid switch state"),
+    });
+
+    match switch_state {
+        Some(state) => {
+            println!("Switching relay");
+            program_state.relay.switch(pin, state?)?
+        }
+        None => {
+            println!("Toggling relay");
+            program_state.relay.toggle(pin)?
+        }
+    };
+
+    Ok(())
+}
+
+fn command_ana(args: &[&str]) -> GenericResult<()> {
+    let pin = args
+        .get(1)
+        .ok_or("Must specify pin number.")?
+        .parse::<u8>()
+        .map_err(|_| "Not a valid pin number")?;
+
+    let voltage = get_input_voltage(pin)?;
+    println!("Voltage read: {}", voltage);
+
+    Ok(())
+}
+
+fn cli_loop(rl: &mut CLIEditor, program_state: &mut ProgramState) -> GenericResult<LoopFlags> {
+    let readline = rl.readline("growpi>> ");
+
+    match readline {
+        Ok(line) => {
+            rl.add_history_entry(line.as_str())?;
+            process_input(line, program_state)
+        }
+        Err(ReadlineError::Eof) => Ok(LoopFlags { exit: true }),
+        Err(_) => Err("No input".into()),
+    }
+}
+
+type CLIEditor = rustyline::Editor<(), FileHistory>;
+fn init_readline() -> GenericResult<CLIEditor> {
+    let mut rl = rustyline::DefaultEditor::new()?;
+    rl.set_max_history_size(10)?;
+    Ok(rl)
+}
+struct ProgramState {
+    relay: io::Relay,
+}
+
+fn init_state() -> GenericResult<ProgramState> {
+    Ok(ProgramState {
+        relay: io::Relay::new()?,
+    })
 }
 
 pub fn run_cli() {
+    let mut rl = init_readline().unwrap();
+    let mut program_state = init_state().unwrap();
+
     'cli_loop: loop {
-        match cli_loop() {
+        match cli_loop(&mut rl, &mut program_state) {
             Ok(loop_flags) => {
                 if loop_flags.exit {
                     println!("Leaving CLI");
@@ -28,77 +111,3 @@ pub fn run_cli() {
         }
     }
 }
-
-// fn process_command(command: String, program_state: &mut ProgramState) -> GenericResult<bool> {
-//     let command = command
-//         .strip_suffix('\n')
-//         .ok_or("Couldn't strip whitespace")?;
-//     let args = command.split(' ').collect::<Vec<_>>();
-
-//     let main_command = *args.first().ok_or("No command found")?;
-//     match main_command {
-//         "water" => toggle_water(&args, program_state)?,
-//         "fan" => toggle_fan(program_state)?,
-//         "light" => toggle_light(program_state)?,
-//         "ana" => analogue_command(&args, program_state)?,
-//         "exit" => return Ok(true),
-//         _ => return Err(format!("Main command '{}' invalid", main_command).into()),
-//     }
-
-//     Ok(false)
-// }
-
-// fn analogue_command(args: &[&str], program_state: &mut ProgramState) -> GenericResult<()> {
-//     let pin = args.get(1).ok_or("No pin given")?;
-//     let pin: u8 = pin.parse()?;
-
-//     let adc_target = rppal::i2c::I2c::new()?;
-//     let mut adc_target =
-//         Ads1x1x::new_ads1115(adc_target, ads1x1x::SlaveAddr::Alternative(false, false));
-//     let channel: ChannelSelection = match pin {
-//         0 => ChannelSelection::SingleA0,
-//         1 => ChannelSelection::SingleA1,
-//         2 => ChannelSelection::SingleA2,
-//         3 => ChannelSelection::SingleA3,
-//         _ => ChannelSelection::SingleA0,
-//     };
-//     loop {
-//         let value = block!(adc_target.read(channel)).map_err(|e| format!("{:?}", e))?;
-//         let value = value as f32;
-//         let voltage = value / i16::MAX as f32 * 2.048;
-//         let resistance = (3.3 / voltage - 1.) * 9_700.;
-//         println!("Value: {}", value);
-//         println!("resistance: {}", resistance);
-//         let temp = 1. / ((1. / 298.15) + (1. / 3950. * f32::ln(resistance / 10_000.))) - 273.15;
-//         println!("Temp: {}", temp);
-//         //println!("Value of pin {} is: {}", pin, value);
-//         thread::sleep(Duration::from_millis(2000));
-//     }
-//     Ok(())
-// }
-
-// fn toggle_water(args: &[&str], program_state: &mut ProgramState) -> GenericResult<()> {
-//     if let Some(duration) = args.get(1) {
-//         let duration: u64 = duration.parse()?;
-//         println!("Turning on water for {} milliseconds", duration);
-//         program_state.water_pin.set_low();
-//         thread::sleep(Duration::from_millis(duration));
-//         program_state.water_pin.set_high();
-//     } else {
-//         program_state.water_pin.toggle();
-//         println!("Toggling water output");
-//     }
-//     Ok(())
-// }
-
-// fn toggle_light(program_state: &mut ProgramState) -> GenericResult<()> {
-//     program_state.light_pin.toggle();
-//     println!("Toggling light output");
-//     Ok(())
-// }
-
-// fn toggle_fan(program_state: &mut ProgramState) -> GenericResult<()> {
-//     program_state.fan_pin.toggle();
-//     println!("Toggling fan output");
-//     Ok(())
-// }
