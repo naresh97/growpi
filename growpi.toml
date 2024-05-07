@@ -34,6 +34,7 @@ temperature_set_point_upper = 35.0
 temperature_set_point_lower = 28.0
 temperature_loop_mins = 60
 sunlight_hours = 24
+lights_off_hour = 0
 watering_frequency_hours = 30
 watering_amount_grams = 200
 

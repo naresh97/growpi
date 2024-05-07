@@ -50,6 +50,7 @@ pub struct ControllerSettings {
     pub temperature_set_point_lower: f32,
     pub temperature_loop_mins: u64,
     pub sunlight_hours: u64,
+    pub lights_off_hour: u64,
     pub watering_frequency_hours: u64,
     pub watering_amount_grams: u64,
 }
@@ -126,6 +127,7 @@ impl Default for Configuration {
                 sunlight_hours: 24,
                 watering_frequency_hours: 30,
                 watering_amount_grams: 200,
+                lights_off_hour: 0,
             },
             data_logging_settings: DataLoggingSettings {
                 enabled: true,
