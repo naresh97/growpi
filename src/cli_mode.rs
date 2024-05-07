@@ -4,10 +4,10 @@ use rustyline::{config::Configurer, error::ReadlineError, history::FileHistory};
 
 use crate::{
     actuators,
-    error::{lock_err, GenericResult},
+    error::GenericResult,
     io::{self, get_input_voltage},
     sensors,
-    state::ProgramStateShared,
+    state::{lock_state, ProgramStateShared},
 };
 
 struct LoopFlags {
@@ -31,7 +31,7 @@ fn process_input(input: String, program_state: ProgramStateShared) -> GenericRes
 }
 
 fn command_pump(args: &[&str], program_state: ProgramStateShared) -> GenericResult<()> {
-    let mut program_state = program_state.lock().map_err(lock_err)?;
+    let mut program_state = lock_state(&program_state)?;
 
     let use_grams = args
         .get(2)
@@ -59,7 +59,7 @@ fn command_temp(args: &[&str], program_state: ProgramStateShared) -> GenericResu
         .map(|arg| matches!(*arg, "loop"))
         .unwrap_or(false);
     loop {
-        let program_state = program_state.lock().map_err(lock_err)?;
+        let program_state = lock_state(&program_state)?;
         let temperature = sensors::get_temperature(&program_state.config)?;
         println!("Temperature: {}C", temperature);
         if !show_loop {
@@ -77,7 +77,7 @@ fn command_soil(args: &[&str], program_state: ProgramStateShared) -> GenericResu
         .unwrap_or(false);
 
     loop {
-        let program_state = program_state.lock().map_err(lock_err)?;
+        let program_state = lock_state(&program_state)?;
         let humidity = sensors::get_soil_moisture(&program_state.config)?;
         println!("Soil humidity: {}", humidity);
         if !show_loop {
@@ -90,7 +90,7 @@ fn command_soil(args: &[&str], program_state: ProgramStateShared) -> GenericResu
 }
 
 fn command_rel(args: &[&str], program_state: ProgramStateShared) -> GenericResult<()> {
-    let mut program_state = program_state.lock().map_err(lock_err)?;
+    let mut program_state = lock_state(&program_state)?;
 
     let pin = args
         .get(1)

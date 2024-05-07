@@ -10,10 +10,10 @@ use tower_http::cors::{Any, CorsLayer};
 
 use crate::{
     actuators,
-    error::{lock_err, GenericResult},
+    error::GenericResult,
     io::RelaySwitchState,
     sensors,
-    state::ProgramStateShared,
+    state::{lock_state, ProgramStateShared},
 };
 
 pub async fn run_server(program_state: ProgramStateShared) {
@@ -40,7 +40,7 @@ async fn pump_handler(
     State(program_state): State<ProgramStateShared>,
 ) -> impl IntoResponse {
     let exec = || -> GenericResult<()> {
-        let mut program_state = program_state.lock().map_err(lock_err)?;
+        let mut program_state = lock_state(&program_state)?;
         actuators::pump_water(quantity, &mut program_state)?;
         Ok(())
     };
@@ -55,7 +55,7 @@ async fn switch_handler(
     State(program_state): State<ProgramStateShared>,
 ) -> impl IntoResponse {
     let exec = || -> GenericResult<()> {
-        let mut program_state = program_state.lock().map_err(lock_err)?;
+        let mut program_state = lock_state(&program_state)?;
         match device.as_str() {
             "lights" => actuators::switch_lights(state, &mut program_state)?,
             "fan" => actuators::switch_fan(state, &mut program_state)?,
@@ -81,7 +81,7 @@ struct Info {
 async fn info_handler(
     State(program_state): State<ProgramStateShared>,
 ) -> Result<Json<Info>, String> {
-    let mut program_state = program_state.lock().map_err(lock_err)?;
+    let mut program_state = lock_state(&program_state).map_err(|e| e.to_string())?;
     let temperature = sensors::get_temperature(&program_state.config).map_err(|e| e.to_string())?;
     let soil_moisture =
         sensors::get_soil_moisture(&program_state.config).map_err(|e| e.to_string())?;

@@ -4,13 +4,13 @@ use chrono::{Local, Timelike};
 
 use crate::{
     actuators,
-    error::{lock_err, GenericResult},
-    state::ProgramStateShared,
+    error::GenericResult,
+    state::{lock_state, ProgramStateShared},
 };
 
 fn light_control(program_state: ProgramStateShared) -> GenericResult<()> {
     let program_state = program_state.clone();
-    let mut program_state = program_state.lock().map_err(lock_err)?;
+    let mut program_state = lock_state(&program_state)?;
     let local = Local::now();
     let hour = local.time().hour();
     if hour as u64 <= program_state.config.controller_settings.sunlight_hours {

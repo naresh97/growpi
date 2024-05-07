@@ -3,8 +3,8 @@ use std::time::Duration;
 use chrono::{DateTime, Utc};
 
 use crate::{
-    error::{lock_err, GenericResult},
-    state::ProgramStateShared,
+    error::GenericResult,
+    state::{lock_state, ProgramStateShared},
 };
 
 pub async fn soil_moisture_control_loop(program_state: ProgramStateShared) {
@@ -20,7 +20,7 @@ pub async fn soil_moisture_control_loop(program_state: ProgramStateShared) {
 }
 
 fn soil_moisture_control(program_state: ProgramStateShared) -> GenericResult<()> {
-    let program_state = program_state.lock().map_err(lock_err)?;
+    let program_state = lock_state(&program_state)?;
     let config = &program_state.config.controller_settings;
     let history = &program_state.history.watering_records;
 

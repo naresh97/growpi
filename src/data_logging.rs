@@ -2,9 +2,9 @@ use chrono::Utc;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    error::{lock_err, GenericResult},
+    error::GenericResult,
     sensors,
-    state::ProgramStateShared,
+    state::{lock_state, ProgramStateShared},
 };
 
 #[derive(Serialize, Deserialize)]
@@ -32,7 +32,7 @@ impl DataRecords {
         Ok(DataRecords { records: result })
     }
     pub fn push(program_state: ProgramStateShared) -> GenericResult<()> {
-        let program_state = program_state.lock().map_err(lock_err)?;
+        let program_state = lock_state(&program_state)?;
         let config = &program_state.config;
         let record = DataRecord {
             timestamp: Utc::now().timestamp(),

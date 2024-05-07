@@ -2,13 +2,13 @@ use std::time::Duration;
 
 use crate::{
     actuators,
-    error::{lock_err, GenericResult},
+    error::GenericResult,
     sensors,
-    state::ProgramStateShared,
+    state::{lock_state, ProgramStateShared},
 };
 
 fn temperature_control(program_state: ProgramStateShared) -> GenericResult<()> {
-    let mut program_state = program_state.lock().map_err(lock_err)?;
+    let mut program_state = lock_state(&program_state)?;
     let config = &program_state.config.controller_settings;
 
     let current_temperature = sensors::get_temperature(&program_state.config)?;

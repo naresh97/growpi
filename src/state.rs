@@ -1,4 +1,4 @@
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, MutexGuard};
 
 use crate::{config::Configuration, error::GenericResult, history::History, io};
 
@@ -7,6 +7,16 @@ pub struct ProgramState {
     pub config: Configuration,
     pub relay: io::Relay,
     pub history: History,
+}
+
+fn lock_err<T: std::fmt::Display>(e: T) -> String {
+    format!("{}", e)
+}
+
+pub fn lock_state(
+    program_state: &ProgramStateShared,
+) -> GenericResult<MutexGuard<'_, ProgramState>> {
+    Ok(program_state.lock().map_err(lock_err)?)
 }
 
 pub fn init_state(config: Configuration) -> GenericResult<ProgramStateShared> {
