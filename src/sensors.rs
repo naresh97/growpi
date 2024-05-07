@@ -2,8 +2,14 @@ use crate::{config::*, error::GenericResult, io::get_input_voltage};
 
 pub fn get_temperature(config: &Configuration) -> GenericResult<f32> {
     let voltage = get_input_voltage(config.thermistor_settings.pin)?;
-    let resistance = (config.board_settings.logic_level / voltage - 1.)
-        * config.thermistor_settings.voltage_divider_resistance;
+
+    let k = config.board_settings.logic_level / voltage - 1.;
+    let k = match config.thermistor_settings.resistor {
+        VoltageDividerResistor::R1 => k,
+        VoltageDividerResistor::R2 => 1. / k,
+    };
+    let resistance = k * config.thermistor_settings.voltage_divider_resistance;
+
     let temperature = 1.
         / ((1. / config.thermistor_settings.nominal_temperature)
             + (1. / config.thermistor_settings.thermal_constant

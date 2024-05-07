@@ -5,7 +5,12 @@ logic_level = 3.299999952316284
 light_pin = 0
 fan_pin = 1
 water_pump_pin = 2
-relay_gpio_pins = [17, 27, 22, -1]
+relay_gpio_pins = [
+    17,
+    27,
+    22,
+    -1,
+]
 
 [soil_moisture_settings]
 pin = 1
@@ -19,6 +24,7 @@ voltage_divider_resistance = 9700.0
 nominal_resistance = 10000.0
 nominal_temperature = 298.1499938964844
 thermal_constant = 3950.0
+resistor = "R2"
 
 [water_pump_settings]
-milliseconds_to_grams = 0.06914
+grams_per_millisecond = 0.05280999839305878

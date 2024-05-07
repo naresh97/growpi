@@ -67,7 +67,7 @@ fn command_temp(args: &[&str], config: &Configuration) -> GenericResult<()> {
     loop {
         let temperature = sensors::get_temperature(config)?;
         println!("Temperature: {}C", temperature);
-        if show_loop {
+        if !show_loop {
             break;
         }
         thread::sleep(Duration::from_secs(1));
@@ -84,7 +84,7 @@ fn command_soil(args: &[&str], config: &Configuration) -> GenericResult<()> {
     loop {
         let humidity = sensors::get_soil_moisture(config)?;
         println!("Soil humidity: {}", humidity);
-        if show_loop {
+        if !show_loop {
             break;
         }
         thread::sleep(Duration::from_secs(1));
@@ -143,7 +143,7 @@ fn command_ana(args: &[&str]) -> GenericResult<()> {
     loop {
         let voltage = get_input_voltage(pin)?;
         println!("Voltage read: {}", voltage);
-        if show_loop {
+        if !show_loop {
             break;
         }
         thread::sleep(Duration::from_secs(1));
@@ -188,8 +188,11 @@ fn init_state(config: &Configuration) -> GenericResult<ProgramState> {
 pub fn run_cli() {
     let mut rl = init_readline().unwrap();
 
-    let config =
-        Configuration::from_file(std::path::Path::new("./growpi.toml")).unwrap_or_default();
+    let config = Configuration::from_file(std::path::Path::new("./growpi.toml"));
+    if let Err(config) = &config {
+        println!("Could not load config: {}", config);
+    }
+    let config = config.unwrap_or_default();
 
     let mut program_state = init_state(&config).unwrap();
 

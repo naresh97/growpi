@@ -17,6 +17,13 @@ pub struct ThermistorSettings {
     pub nominal_resistance: f32,
     pub nominal_temperature: f32,
     pub thermal_constant: f32,
+    pub resistor: VoltageDividerResistor,
+}
+
+#[derive(Serialize, Deserialize)]
+pub enum VoltageDividerResistor {
+    R1,
+    R2,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -81,6 +88,7 @@ impl Default for Configuration {
                 nominal_resistance: 10_000.,
                 nominal_temperature: 298.15,
                 thermal_constant: 3950.,
+                resistor: VoltageDividerResistor::R2,
             },
             water_pump_settings: WaterPumpSettings {
                 grams_per_millisecond: 0.05281,
