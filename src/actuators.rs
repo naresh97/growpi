@@ -57,6 +57,7 @@ pub fn pump_water(water_mass_g: u16, program_state: &mut ProgramState) -> Generi
         .history
         .watering_records
         .push(WateringRecord::new(water_mass_g.into()));
+    program_state.history.save()?;
 
     Ok(())
 }

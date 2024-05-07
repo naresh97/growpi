@@ -11,7 +11,7 @@ pub struct ProgramState {
 
 pub fn init_state(config: Configuration) -> GenericResult<ProgramStateShared> {
     let relay = io::Relay::new(&config)?;
-    let history = History::load()?;
+    let history = History::load().unwrap_or_default();
     Ok(Arc::new(Mutex::new(ProgramState {
         config,
         relay,
