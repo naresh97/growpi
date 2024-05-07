@@ -56,6 +56,12 @@ pub struct ControllerSettings {
     pub ideal_soil_moisture_pct: u64,
 }
 
+#[derive(Serialize, Deserialize, Clone)]
+pub struct DataLoggingSettings {
+    pub enabled: bool,
+    pub frequency_mins: u64,
+}
+
 #[derive(Serialize, Deserialize)]
 pub struct Configuration {
     pub board_settings: BoardSettings,
@@ -64,6 +70,7 @@ pub struct Configuration {
     pub thermistor_settings: ThermistorSettings,
     pub water_pump_settings: WaterPumpSettings,
     pub controller_settings: ControllerSettings,
+    pub data_logging_settings: DataLoggingSettings,
 }
 
 impl Configuration {
@@ -115,6 +122,10 @@ impl Default for Configuration {
                 max_water_over_window_grams: 1000,
                 max_water_window_hours: 24,
                 ideal_soil_moisture_pct: 70,
+            },
+            data_logging_settings: DataLoggingSettings {
+                enabled: true,
+                frequency_mins: 60,
             },
         }
     }
