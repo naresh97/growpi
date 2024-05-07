@@ -27,6 +27,7 @@ pub fn get_input_voltage(pin: u8) -> GenericResult<f32> {
 pub struct Relay {
     relay_pins: Vec<Option<rppal::gpio::OutputPin>>,
 }
+#[derive(serde::Serialize, serde::Deserialize)]
 pub enum RelaySwitchState {
     On,
     Off,

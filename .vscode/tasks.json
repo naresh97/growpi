@@ -4,7 +4,11 @@
 		{
 			"type": "process",
 			"command": "cross",
-			"args": ["build", "--target","arm-unknown-linux-gnueabihf"],
+			"args": [
+				"build",
+				"--target",
+				"arm-unknown-linux-gnueabihf"
+			],
 			"problemMatcher": [
 				"$rustc"
 			],
@@ -12,4 +16,4 @@
 			"label": "rust: cargo build"
 		}
 	]
-} 
+}

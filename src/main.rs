@@ -1,6 +1,5 @@
+#![feature(duration_constructors)]
 #![allow(dead_code)]
-
-use std::thread;
 
 use cli_mode::run_cli;
 use config::Configuration;
@@ -32,16 +31,17 @@ async fn main() {
     let program_state = init_state(config).unwrap();
 
     let program_state_clone = program_state.clone();
-    let control_thread_handle = thread::spawn(move || control::control_thread(program_state_clone));
+    let control_thread_handle =
+        tokio::spawn(async move { control::control_thread(program_state_clone).await });
 
     let args = std::env::args().collect::<Vec<_>>();
 
     let mode = args.get(1).map(|x| x.as_str());
 
     match mode {
-        Some("cli") => run_cli(program_state),
-        _ => run_server().await,
+        Some("cli") => run_cli(program_state.clone()),
+        _ => run_server(program_state.clone()).await,
     }
 
-    let _ = control_thread_handle.join();
+    let _ = control_thread_handle.await;
 }
