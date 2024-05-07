@@ -39,7 +39,11 @@ impl Relay {
             .clone()
             .into_iter()
             .map(|pin| {
-                pin.and_then(|pin| {
+                match pin {
+                    -1 => None,
+                    _ => Some(pin as u8),
+                }
+                .and_then(|pin| {
                     let result = (|| -> GenericResult<OutputPin> {
                         Ok(Gpio::new()?.get(pin)?.into_output())
                     })();

@@ -7,7 +7,7 @@ pub struct RelaySettings {
     pub light_pin: u8,
     pub fan_pin: u8,
     pub water_pump_pin: u8,
-    pub relay_gpio_pins: Vec<Option<u8>>,
+    pub relay_gpio_pins: Vec<i16>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -41,21 +41,17 @@ pub struct Configuration {
 }
 
 impl Configuration {
-    fn from_file(path: &std::path::Path) -> GenericResult<Configuration> {
+    pub fn from_file(path: &std::path::Path) -> GenericResult<Configuration> {
         let text = std::fs::read_to_string(path)?;
-        let config: Configuration = toml::from_str(text.as_str())?;
+        let config = toml::from_str(text.as_str())?;
         Ok(config)
     }
-    fn save_to_file(path: &std::path::Path, config: &Configuration) -> GenericResult<()> {
-        let text = toml::to_string_pretty(config)?;
+    pub fn save_to_file(&self, path: &std::path::Path) -> GenericResult<()> {
+        let text = toml::to_string_pretty(self)?;
         std::fs::write(path, text)?;
         Ok(())
     }
 }
-
-const THERMISTOR_NOMINAL_RESISTANCE: f32 = 10_000.;
-const THERMISTOR_NOMINAL_TEMPERATURE: f32 = 298.15;
-const THERMISTOR_CONSTANT: f32 = 3950.;
 
 impl Default for Configuration {
     fn default() -> Self {
@@ -65,7 +61,7 @@ impl Default for Configuration {
                 light_pin: 0,
                 fan_pin: 1,
                 water_pump_pin: 2,
-                relay_gpio_pins: [Some(17), Some(27), Some(22), None].to_vec(),
+                relay_gpio_pins: [17, 27, 22, -1].to_vec(),
             },
             soil_moisture_settings: SoilMoistureSettings {
                 pin: 1,
@@ -81,5 +77,18 @@ impl Default for Configuration {
                 thermal_constant: 3950.,
             },
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_write_default() {
+        let config = Configuration::default();
+        config
+            .save_to_file(std::path::Path::new("./growpi.toml"))
+            .unwrap();
     }
 }

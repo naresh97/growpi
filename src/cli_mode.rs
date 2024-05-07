@@ -160,7 +160,10 @@ fn init_state(config: &Configuration) -> GenericResult<ProgramState> {
 
 pub fn run_cli() {
     let mut rl = init_readline().unwrap();
-    let config = Configuration::default();
+
+    let config =
+        Configuration::from_file(std::path::Path::new("./growpi.toml")).unwrap_or_default();
+
     let mut program_state = init_state(&config).unwrap();
 
     'cli_loop: loop {
