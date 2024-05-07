@@ -10,3 +10,6 @@ rppal = "0.17.1"
 #rumqttc = "0.24.0"
 interrupts = "0.1.5"
 libc = "0.2.153"
+
+[dependencies.linux_realtime]
+path = "../linux_realtime"

@@ -1,8 +1,4 @@
-use std::{
-    error::Error,
-    thread,
-    time::{Duration, Instant},
-};
+use std::{error::Error, time::Duration};
 
 use rppal::gpio::Gpio;
 
@@ -19,45 +15,47 @@ impl Dht11Sensor {
         Ok(Dht11Sensor { pin })
     }
 
-    fn expect_pulse(&mut self, expected_level: bool) -> Result<Duration, Box<dyn Error>> {
-        let started = Instant::now();
+    fn expect_pulse(&mut self, expected_level: bool) -> Result<u32, Box<dyn Error>> {
+        let _guard = interrupts::disable();
+        let mut count: u32 = 0;
+        let mut rtclock = linux_realtime::Clock::new()?;
         loop {
             if self.pin.is_high() != expected_level {
                 break;
             }
-            if started.elapsed() >= Duration::from_micros(1000) {
+            if count >= 1000 {
                 return Err(std::io::Error::new(
                     std::io::ErrorKind::InvalidData,
                     "Timeout while reading pulse",
                 )
                 .into());
             }
-
-            thread::sleep(Duration::from_micros(1));
+            count += 1;
+            rtclock.sleep(Duration::from_micros(1))?;
         }
-        Ok(started.elapsed())
+        Ok(count)
     }
 
     pub fn read(&mut self) -> Result<Dht11Data, Box<dyn Error>> {
         use rppal::gpio::{Bias, Mode};
 
         let mut data = [0; 5];
-        let mut cycles: [Duration; 80] = [Duration::from_micros(0); 80];
+        let mut cycles: [u32; 80] = [0; 80];
 
-        let guard = interrupts::disable();
+        let mut rtclock = linux_realtime::Clock::new()?;
 
         self.pin.set_mode(Mode::Input);
         self.pin.set_bias(Bias::PullUp);
-        thread::sleep(Duration::from_millis(1));
+        rtclock.sleep(Duration::from_millis(1))?;
 
         self.pin.set_mode(Mode::Output);
         self.pin.set_low();
-        thread::sleep(Duration::from_millis(20));
+        rtclock.sleep(Duration::from_millis(20))?;
 
         // Timing Critical Code
         self.pin.set_mode(Mode::Input);
         self.pin.set_bias(Bias::PullUp);
-        thread::sleep(Duration::from_micros(55));
+        rtclock.sleep(Duration::from_micros(55))?;
 
         self.expect_pulse(false)?;
         self.expect_pulse(true)?;
