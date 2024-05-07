@@ -51,9 +51,8 @@ pub struct ControllerSettings {
     pub temperature_loop_mins: u64,
     pub sunlight_hours: u64,
     pub soil_loop_hours: u64,
-    pub max_water_over_window_grams: u64,
-    pub max_water_window_hours: u64,
-    pub ideal_soil_moisture_pct: u64,
+    pub watering_frequency_hours: u64,
+    pub watering_amount_grams: u64,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -119,9 +118,8 @@ impl Default for Configuration {
                 temperature_loop_mins: 60,
                 soil_loop_hours: 12,
                 sunlight_hours: 24,
-                max_water_over_window_grams: 1000,
-                max_water_window_hours: 24,
-                ideal_soil_moisture_pct: 70,
+                watering_frequency_hours: 30,
+                watering_amount_grams: 200,
             },
             data_logging_settings: DataLoggingSettings {
                 enabled: true,

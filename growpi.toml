@@ -35,3 +35,9 @@ temperature_set_point_lower = 28.0
 temperature_loop_mins = 60
 sunlight_hours = 24
 soil_loop_hours = 12
+watering_frequency_hours = 30
+watering_amount_grams = 200
+
+[data_logging_settings]
+enabled = true
+frequency_mins = 60
