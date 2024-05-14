@@ -1,9 +1,8 @@
 use std::{path::Path, time::Duration};
 
 use crate::{
-    actuators,
     error::GenericResult,
-    io::{self, RelaySwitchState},
+    io,
     state::{lock_state, ProgramStateShared},
 };
 
@@ -20,17 +19,7 @@ pub async fn save_latest_image(program_state: ProgramStateShared) -> GenericResu
         })
         .unwrap_or(io::ImageResolution::R360p);
 
-    let light_state: RelaySwitchState;
-    {
-        let mut program_state = lock_state(&program_state)?;
-        light_state = actuators::get_light_state(&mut program_state)?;
-        actuators::switch_lights(RelaySwitchState::On, &mut program_state)?;
-    }
     io::capture_image(&resolution, get_image_path()).await?;
-    {
-        let mut program_state = lock_state(&program_state)?;
-        actuators::switch_lights(light_state, &mut program_state)?;
-    }
     Ok(())
 }
 
