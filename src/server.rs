@@ -41,6 +41,7 @@ fn setup_router(program_state: ProgramStateShared) -> Router {
             "/api/watering_history/:entries",
             get(watering_history_handler),
         )
+        .route("/api/graceful_shutdown", get(graceful_shutdown_handler))
         .route("/image", get(image_handler))
         .route("/*path", get(site_handler))
         .route("/", get(root_handler))
@@ -178,6 +179,13 @@ async fn watering_history_handler(
     let records = records.map(Json);
     match records {
         Ok(records) => records.into_response(),
+        Err(_) => StatusCode::SERVICE_UNAVAILABLE.into_response(),
+    }
+}
+
+async fn graceful_shutdown_handler() -> Response {
+    match system_shutdown::shutdown() {
+        Ok(_) => StatusCode::OK.into_response(),
         Err(_) => StatusCode::SERVICE_UNAVAILABLE.into_response(),
     }
 }

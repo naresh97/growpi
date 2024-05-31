@@ -12,6 +12,7 @@ export default {
       light_state: false,
       water_state: false,
       water_primed: false,
+      shutdown_primed: false,
       fan_state: false,
       pumpAmount: 150,
       image_src: "/image",
@@ -39,8 +40,11 @@ export default {
       await this.updateInfo();
     },
     async pumpWater() {
-      console.log("Pumping: " + this.pumpAmount);
       await fetch("/api/pump/" + this.pumpAmount);
+      await this.updateInfo();
+    },
+    async gracefulShutdown() {
+      await fetch("/api/graceful_shutdown");
       await this.updateInfo();
     },
     async refreshImage() {
@@ -150,6 +154,16 @@ function to_bool(state) {
             </td>
           </tr>
         </table>
+      </td>
+    </tr>
+    <tr>
+      <td>Graceful Shutdown</td>
+      <td>
+        <div class="whole-cell">
+          <ToggleButton v-model="shutdown_primed" onLabel="Ready" offLabel="Click to Prime" />
+          <Button @click="gracefulShutdown(); shutdown_primed = false;" :disabled="!shutdown_primed"
+            label="Graceful Shutdown" />
+        </div>
       </td>
     </tr>
   </table>
