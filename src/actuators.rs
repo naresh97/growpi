@@ -1,20 +1,17 @@
 use std::{thread, time::Duration};
 
-use crate::{
-    error::GenericResult, history::WateringRecord, io::RelaySwitchState, sensors,
-    state::ProgramState,
-};
+use crate::{history::WateringRecord, io::RelaySwitchState, sensors, state::ProgramState};
 
 pub fn switch_lights(
     state: RelaySwitchState,
     program_state: &mut ProgramState,
-) -> GenericResult<()> {
+) -> anyhow::Result<()> {
     program_state
         .relay
         .switch(program_state.config.relay_settings.light_pin, state)
 }
 
-pub fn switch_fan(state: RelaySwitchState, program_state: &mut ProgramState) -> GenericResult<()> {
+pub fn switch_fan(state: RelaySwitchState, program_state: &mut ProgramState) -> anyhow::Result<()> {
     program_state
         .relay
         .switch(program_state.config.relay_settings.fan_pin, state)
@@ -23,26 +20,26 @@ pub fn switch_fan(state: RelaySwitchState, program_state: &mut ProgramState) -> 
 pub fn switch_water_pump(
     state: RelaySwitchState,
     program_state: &mut ProgramState,
-) -> GenericResult<()> {
+) -> anyhow::Result<()> {
     program_state
         .relay
         .switch(program_state.config.relay_settings.water_pump_pin, state)
 }
 
-pub fn get_light_state(program_state: &mut ProgramState) -> GenericResult<RelaySwitchState> {
+pub fn get_light_state(program_state: &mut ProgramState) -> anyhow::Result<RelaySwitchState> {
     let pin = program_state.config.relay_settings.light_pin;
     program_state.relay.get_state(pin)
 }
-pub fn get_water_pump_state(program_state: &mut ProgramState) -> GenericResult<RelaySwitchState> {
+pub fn get_water_pump_state(program_state: &mut ProgramState) -> anyhow::Result<RelaySwitchState> {
     let pin = program_state.config.relay_settings.water_pump_pin;
     program_state.relay.get_state(pin)
 }
-pub fn get_fan_state(program_state: &mut ProgramState) -> GenericResult<RelaySwitchState> {
+pub fn get_fan_state(program_state: &mut ProgramState) -> anyhow::Result<RelaySwitchState> {
     let pin = program_state.config.relay_settings.fan_pin;
     program_state.relay.get_state(pin)
 }
 
-pub fn pump_water(water_mass_g: u16, program_state: &mut ProgramState) -> GenericResult<()> {
+pub fn pump_water(water_mass_g: u16, program_state: &mut ProgramState) -> anyhow::Result<()> {
     let duration_ms = water_mass_g as f32
         / program_state
             .config

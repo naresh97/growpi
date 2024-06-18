@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{error::GenericResult, io::ImageResolution};
+use crate::io::ImageResolution;
 
 #[derive(Serialize, Deserialize)]
 pub struct RelaySettings {
@@ -88,12 +88,12 @@ pub struct Configuration {
 }
 
 impl Configuration {
-    pub fn from_file(path: &std::path::Path) -> GenericResult<Configuration> {
+    pub fn from_file(path: &std::path::Path) -> anyhow::Result<Configuration> {
         let text = std::fs::read_to_string(path)?;
         let config = toml::from_str(text.as_str())?;
         Ok(config)
     }
-    pub fn save_to_file(&self, path: &std::path::Path) -> GenericResult<()> {
+    pub fn save_to_file(&self, path: &std::path::Path) -> anyhow::Result<()> {
         let text = toml::to_string_pretty(self)?;
         std::fs::write(path, text)?;
         Ok(())

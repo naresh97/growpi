@@ -3,7 +3,7 @@ use std::time::Duration;
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
 
-use crate::{error::GenericResult, sensors, state::ProgramStateShared};
+use crate::{sensors, state::ProgramStateShared};
 
 #[derive(Serialize, Deserialize)]
 pub struct DataRecord {
@@ -19,7 +19,7 @@ pub struct DataRecords {
 
 const FILE_PATH: &str = "./growpi.datalog.csv";
 impl DataRecords {
-    pub async fn push(program_state: ProgramStateShared) -> GenericResult<()> {
+    pub async fn push(program_state: ProgramStateShared) -> anyhow::Result<()> {
         let program_state = program_state.lock().await;
         let config = &program_state.config;
         let record = DataRecord {
@@ -49,7 +49,7 @@ pub async fn data_logging_loop(program_state: ProgramStateShared) {
             data_logging_settings.frequency_mins,
         );
         if enabled {
-            let _ = DataRecords::push(program_state.clone());
+            let _ = DataRecords::push(program_state.clone()).await;
         }
         tokio::time::sleep(Duration::from_mins(frequency_mins)).await;
     }

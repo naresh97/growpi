@@ -1,10 +1,10 @@
 use std::{path::Path, time::Duration};
 
-use crate::{error::GenericResult, io, state::ProgramStateShared};
+use crate::{io, state::ProgramStateShared};
 
 pub const IMAGE_PATH: &str = "./growpi.image.jpeg";
 
-pub async fn save_latest_image(program_state: ProgramStateShared) -> GenericResult<()> {
+pub async fn save_latest_image(program_state: ProgramStateShared) -> anyhow::Result<()> {
     let resolution = program_state
         .lock()
         .await

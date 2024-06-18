@@ -10,7 +10,6 @@ mod actuators;
 mod cli_mode;
 mod config;
 mod control;
-mod error;
 mod history;
 mod io;
 mod sensors;

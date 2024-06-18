@@ -1,26 +1,27 @@
 use ads1x1x::{Ads1x1x, ChannelSelection, DynamicOneShot};
+use anyhow::{anyhow, bail, Context};
 use async_process::Command;
 use nb::block;
 use rppal::gpio::{Gpio, OutputPin};
 use serde::{Deserialize, Serialize};
 
-use crate::{config::*, error::GenericResult};
+use crate::config::*;
 
-pub fn get_input_voltage(pin: u8) -> GenericResult<f32> {
+pub fn get_input_voltage(pin: u8) -> anyhow::Result<f32> {
     const ADS1115_DEFAULT_RANGE: f32 = 4.096;
 
     let adc = rppal::i2c::I2c::new()?;
     let mut adc = Ads1x1x::new_ads1115(adc, ads1x1x::SlaveAddr::Alternative(false, false));
     adc.set_full_scale_range(ads1x1x::FullScaleRange::Within4_096V)
-        .map_err(|_| "Could not set full scale range")?;
+        .map_err(|_| anyhow!("Couldn't set full scale range"))?;
     let channel: ChannelSelection = match pin {
         0 => ChannelSelection::SingleA0,
         1 => ChannelSelection::SingleA1,
         2 => ChannelSelection::SingleA2,
         3 => ChannelSelection::SingleA3,
-        _ => return Err(format!("Pin {} not available. Only 0-3", pin).into()),
+        _ => bail!("Pin {} not available. Only 0-3", pin),
     };
-    let result = block!(adc.read(channel)).map_err(|e| format!("{:?}", e))?;
+    let result = block!(adc.read(channel)).map_err(|e| anyhow!("{:?}", e))?;
     let result = result as f32;
     let result = result / i16::MAX as f32 * ADS1115_DEFAULT_RANGE;
     Ok(result)
@@ -35,7 +36,7 @@ pub enum RelaySwitchState {
     Off,
 }
 impl Relay {
-    pub fn new(config: &Configuration) -> GenericResult<Relay> {
+    pub fn new(config: &Configuration) -> anyhow::Result<Relay> {
         let mut output_pins = config
             .relay_settings
             .relay_gpio_pins
@@ -47,7 +48,7 @@ impl Relay {
                     _ => Some(pin as u8),
                 }
                 .and_then(|pin| {
-                    let result = (|| -> GenericResult<OutputPin> {
+                    let result = (|| -> anyhow::Result<OutputPin> {
                         Ok(Gpio::new()?.get(pin)?.into_output())
                     })();
                     result.ok()
@@ -62,13 +63,13 @@ impl Relay {
             relay_pins: output_pins,
         })
     }
-    pub fn toggle(&mut self, pin: u8) -> GenericResult<()> {
+    pub fn toggle(&mut self, pin: u8) -> anyhow::Result<()> {
         let pin = self.get_output_pin(pin)?;
         pin.toggle();
         Ok(())
     }
 
-    pub fn switch(&mut self, pin: u8, state: RelaySwitchState) -> GenericResult<()> {
+    pub fn switch(&mut self, pin: u8, state: RelaySwitchState) -> anyhow::Result<()> {
         let pin = self.get_output_pin(pin)?;
         match state {
             RelaySwitchState::On => pin.set_low(),
@@ -77,7 +78,7 @@ impl Relay {
         Ok(())
     }
 
-    pub fn get_state(&mut self, pin: u8) -> GenericResult<RelaySwitchState> {
+    pub fn get_state(&mut self, pin: u8) -> anyhow::Result<RelaySwitchState> {
         let pin = self.get_output_pin(pin)?;
         if pin.is_set_high() {
             Ok(RelaySwitchState::Off)
@@ -86,13 +87,12 @@ impl Relay {
         }
     }
 
-    fn get_output_pin(&mut self, pin: u8) -> GenericResult<&mut OutputPin> {
-        Ok(self
-            .relay_pins
+    fn get_output_pin(&mut self, pin: u8) -> anyhow::Result<&mut OutputPin> {
+        self.relay_pins
             .get_mut(pin as usize)
-            .ok_or(format!("Pin {} not within pin array", pin,))?
+            .context(format!("Pin {} not within pin array", pin,))?
             .as_mut()
-            .ok_or("Pin not configured.")?)
+            .context("Pin not configured.")
     }
 }
 
@@ -117,7 +117,7 @@ impl ImageResolution {
 pub async fn capture_image(
     resolution: &ImageResolution,
     path: &std::path::Path,
-) -> GenericResult<()> {
+) -> anyhow::Result<()> {
     let path = std::path::absolute(path)?;
     let (width, height) = resolution.get_width_height();
     Command::new("/usr/bin/libcamera-jpeg")

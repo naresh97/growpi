@@ -1,6 +1,6 @@
-use crate::{config::*, error::GenericResult, io::get_input_voltage};
+use crate::{config::*, io::get_input_voltage};
 
-pub fn get_temperature(config: &Configuration) -> GenericResult<f32> {
+pub fn get_temperature(config: &Configuration) -> anyhow::Result<f32> {
     let voltage = get_input_voltage(config.thermistor_settings.pin)?;
 
     let k = config.board_settings.logic_level / voltage - 1.;
@@ -18,7 +18,7 @@ pub fn get_temperature(config: &Configuration) -> GenericResult<f32> {
     Ok(temperature)
 }
 
-pub fn get_soil_moisture(config: &Configuration) -> GenericResult<f32> {
+pub fn get_soil_moisture(config: &Configuration) -> anyhow::Result<f32> {
     let voltage = get_input_voltage(config.soil_moisture_settings.pin)?;
 
     let voltage_zero_humidity: f32 = (config.soil_moisture_settings.voltage_nominal

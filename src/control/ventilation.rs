@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use crate::{actuators, error::GenericResult, io, state::ProgramStateShared};
+use crate::{actuators, io, state::ProgramStateShared};
 
 pub async fn ventilation_control_loop(program_state: ProgramStateShared) {
     loop {
@@ -16,16 +16,16 @@ pub async fn ventilation_control_loop(program_state: ProgramStateShared) {
     }
 }
 
-async fn ventilation_control(program_state: ProgramStateShared) -> GenericResult<()> {
+async fn ventilation_control(program_state: ProgramStateShared) -> anyhow::Result<()> {
     let mut program_state = program_state.lock().await;
     let fan_state = actuators::get_fan_state(&mut program_state)?;
 
     let ventilation_duration = program_state.config.ventilation_settings.duration_mins;
     let ventilation_duration = Duration::from_mins(ventilation_duration.into());
 
-    actuators::switch_fan(io::RelaySwitchState::On, &mut program_state);
+    actuators::switch_fan(io::RelaySwitchState::On, &mut program_state)?;
     tokio::time::sleep(ventilation_duration).await;
-    actuators::switch_fan(fan_state, &mut program_state);
+    actuators::switch_fan(fan_state, &mut program_state)?;
 
     Ok(())
 }

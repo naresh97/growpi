@@ -1,8 +1,8 @@
 use std::time::Duration;
 
-use crate::{actuators, error::GenericResult, sensors, state::ProgramStateShared};
+use crate::{actuators, sensors, state::ProgramStateShared};
 
-async fn temperature_control(program_state: ProgramStateShared) -> GenericResult<()> {
+async fn temperature_control(program_state: ProgramStateShared) -> anyhow::Result<()> {
     let mut program_state = program_state.lock().await;
     let config = &program_state.config.controller_settings;
 
@@ -23,7 +23,7 @@ pub async fn temperature_control_loop(program_state: ProgramStateShared) {
             .config
             .controller_settings
             .temperature_loop_mins;
-        let _ = temperature_control(program_state.clone());
+        let _ = temperature_control(program_state.clone()).await;
         tokio::time::sleep(Duration::from_mins(loop_duration)).await;
     }
 }

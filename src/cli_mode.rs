@@ -1,10 +1,10 @@
 use std::{thread, time::Duration};
 
+use anyhow::{anyhow, bail, Context};
 use rustyline::{config::Configurer, error::ReadlineError, history::FileHistory};
 
 use crate::{
     actuators,
-    error::GenericResult,
     io::{self, get_input_voltage},
     sensors,
     state::ProgramStateShared,
@@ -17,9 +17,9 @@ struct LoopFlags {
 async fn process_input(
     input: String,
     program_state: ProgramStateShared,
-) -> GenericResult<LoopFlags> {
+) -> anyhow::Result<LoopFlags> {
     let args = input.split(' ').collect::<Vec<_>>();
-    let main_command = *args.first().ok_or("No main command found.")?;
+    let main_command = *args.first().context("No main command found.")?;
     match main_command {
         "ana" => command_ana(&args)?,
         "rel" => command_rel(&args, program_state).await?,
@@ -27,13 +27,13 @@ async fn process_input(
         "temp" => command_temp(&args, program_state).await?,
         "pump" => command_pump(&args, program_state).await?,
         "exit" => return Ok(LoopFlags { exit: true }),
-        _ => return Err("Unknown main command".into()),
+        _ => bail!("Unknown main command"),
     };
 
     Ok(LoopFlags { exit: false })
 }
 
-async fn command_pump(args: &[&str], program_state: ProgramStateShared) -> GenericResult<()> {
+async fn command_pump(args: &[&str], program_state: ProgramStateShared) -> anyhow::Result<()> {
     let mut program_state = program_state.lock().await;
 
     let use_grams = args
@@ -42,12 +42,12 @@ async fn command_pump(args: &[&str], program_state: ProgramStateShared) -> Gener
         .unwrap_or(false);
 
     if use_grams {
-        let grams: u16 = args.get(1).ok_or("No mass specified.")?.parse()?;
+        let grams: u16 = args.get(1).context("No mass specified.")?.parse()?;
         actuators::pump_water(grams, &mut program_state)?;
         return Ok(());
     }
 
-    let duration_ms: u64 = args.get(1).ok_or("No duration specified.")?.parse()?;
+    let duration_ms: u64 = args.get(1).context("No duration specified.")?.parse()?;
     let duration = Duration::from_millis(duration_ms);
     actuators::switch_water_pump(io::RelaySwitchState::On, &mut program_state)?;
     thread::sleep(duration);
@@ -56,7 +56,7 @@ async fn command_pump(args: &[&str], program_state: ProgramStateShared) -> Gener
     Ok(())
 }
 
-async fn command_temp(args: &[&str], program_state: ProgramStateShared) -> GenericResult<()> {
+async fn command_temp(args: &[&str], program_state: ProgramStateShared) -> anyhow::Result<()> {
     let show_loop = args
         .get(1)
         .map(|arg| matches!(*arg, "loop"))
@@ -73,7 +73,7 @@ async fn command_temp(args: &[&str], program_state: ProgramStateShared) -> Gener
     Ok(())
 }
 
-async fn command_soil(args: &[&str], program_state: ProgramStateShared) -> GenericResult<()> {
+async fn command_soil(args: &[&str], program_state: ProgramStateShared) -> anyhow::Result<()> {
     let show_loop = args
         .get(1)
         .map(|arg| matches!(*arg, "loop"))
@@ -92,14 +92,14 @@ async fn command_soil(args: &[&str], program_state: ProgramStateShared) -> Gener
     Ok(())
 }
 
-async fn command_rel(args: &[&str], program_state: ProgramStateShared) -> GenericResult<()> {
+async fn command_rel(args: &[&str], program_state: ProgramStateShared) -> anyhow::Result<()> {
     let mut program_state = program_state.lock().await;
 
     let pin = args
         .get(1)
-        .ok_or("Must specify pin number.")?
+        .context("Must specify pin number.")?
         .parse::<u8>()
-        .map_err(|_| "Not a valid pin number")?;
+        .context("Not a valid pin number")?;
 
     let switch_state = args.get(2).map(|arg| match *arg {
         "1" => Ok(io::RelaySwitchState::On),
@@ -108,7 +108,7 @@ async fn command_rel(args: &[&str], program_state: ProgramStateShared) -> Generi
         "0" => Ok(io::RelaySwitchState::Off),
         "off" => Ok(io::RelaySwitchState::Off),
         "false" => Ok(io::RelaySwitchState::Off),
-        _ => Err("Not a valid switch state"),
+        _ => Err(anyhow!("Not a valid switch state")),
     });
 
     match switch_state {
@@ -125,12 +125,12 @@ async fn command_rel(args: &[&str], program_state: ProgramStateShared) -> Generi
     Ok(())
 }
 
-fn command_ana(args: &[&str]) -> GenericResult<()> {
+fn command_ana(args: &[&str]) -> anyhow::Result<()> {
     let pin = args
         .get(1)
-        .ok_or("Must specify pin number.")?
+        .context("Must specify pin number.")?
         .parse::<u8>()
-        .map_err(|_| "Not a valid pin number")?;
+        .context("Not a valid pin number")?;
 
     let show_loop = args
         .get(2)
@@ -152,7 +152,7 @@ fn command_ana(args: &[&str]) -> GenericResult<()> {
 async fn cli_loop(
     rl: &mut CLIEditor,
     program_state: ProgramStateShared,
-) -> GenericResult<LoopFlags> {
+) -> anyhow::Result<LoopFlags> {
     let readline = rl.readline("growpi>> ");
 
     match readline {
@@ -161,12 +161,12 @@ async fn cli_loop(
             process_input(line, program_state).await
         }
         Err(ReadlineError::Eof) => Ok(LoopFlags { exit: true }),
-        Err(_) => Err("No input".into()),
+        Err(_) => Err(anyhow!("No input")),
     }
 }
 
 type CLIEditor = rustyline::Editor<(), FileHistory>;
-fn init_readline() -> GenericResult<CLIEditor> {
+fn init_readline() -> anyhow::Result<CLIEditor> {
     let mut rl = rustyline::DefaultEditor::new()?;
     rl.set_max_history_size(10)?;
     Ok(rl)
