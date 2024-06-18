@@ -3,11 +3,7 @@ use std::time::Duration;
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    error::GenericResult,
-    sensors,
-    state::{lock_state, ProgramStateShared},
-};
+use crate::{error::GenericResult, sensors, state::ProgramStateShared};
 
 #[derive(Serialize, Deserialize)]
 pub struct DataRecord {
@@ -23,8 +19,8 @@ pub struct DataRecords {
 
 const FILE_PATH: &str = "./growpi.datalog.csv";
 impl DataRecords {
-    pub fn push(program_state: ProgramStateShared) -> GenericResult<()> {
-        let program_state = lock_state(&program_state)?;
+    pub async fn push(program_state: ProgramStateShared) -> GenericResult<()> {
+        let program_state = program_state.lock().await;
         let config = &program_state.config;
         let record = DataRecord {
             timestamp: Utc::now().timestamp(),
@@ -42,14 +38,16 @@ impl DataRecords {
 
 pub async fn data_logging_loop(program_state: ProgramStateShared) {
     loop {
-        let (enabled, frequency_mins) = lock_state(&program_state)
-            .map(|state| {
-                (
-                    state.config.data_logging_settings.enabled,
-                    state.config.data_logging_settings.frequency_mins,
-                )
-            })
-            .unwrap_or((true, 60));
+        let data_logging_settings = program_state
+            .lock()
+            .await
+            .config
+            .data_logging_settings
+            .clone();
+        let (enabled, frequency_mins) = (
+            data_logging_settings.enabled,
+            data_logging_settings.frequency_mins,
+        );
         if enabled {
             let _ = DataRecords::push(program_state.clone());
         }

@@ -1,3 +1,5 @@
+use std::error::Error;
+
 use axum::{
     extract::{Path, State},
     http::{header, HeaderValue, Method, StatusCode},
@@ -8,19 +10,11 @@ use axum::{
 use serde::{Deserialize, Serialize};
 use tower_http::cors::{Any, CorsLayer};
 
-use crate::{
-    actuators, control,
-    error::GenericResult,
-    io::RelaySwitchState,
-    sensors,
-    state::{lock_state, ProgramStateShared},
-};
+use crate::{actuators, control, io::RelaySwitchState, sensors, state::ProgramStateShared};
 
 pub async fn run_server(program_state: ProgramStateShared) {
     let app: Router = setup_router(program_state.clone());
-    let port = lock_state(&program_state)
-        .map(|state| state.config.server_settings.port)
-        .unwrap_or(2205);
+    let port = program_state.lock().await.config.server_settings.port;
     let listener = tokio::net::TcpListener::bind(("0.0.0.0", port))
         .await
         .unwrap();
@@ -53,12 +47,12 @@ async fn pump_handler(
     Path(quantity): Path<u16>,
     State(program_state): State<ProgramStateShared>,
 ) -> impl IntoResponse {
-    let exec = || -> GenericResult<()> {
-        let mut program_state = lock_state(&program_state)?;
+    let exec = async {
+        let mut program_state = program_state.lock().await;
         actuators::pump_water(quantity, &mut program_state)?;
-        Ok(())
+        Ok::<_, Box<dyn Error>>(())
     };
-    match exec() {
+    match exec.await {
         Ok(_) => StatusCode::OK,
         Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
     }
@@ -68,16 +62,16 @@ async fn switch_handler(
     Path((device, state)): Path<(String, RelaySwitchState)>,
     State(program_state): State<ProgramStateShared>,
 ) -> impl IntoResponse {
-    let exec = || -> GenericResult<()> {
-        let mut program_state = lock_state(&program_state)?;
+    let exec = async {
+        let mut program_state = program_state.lock().await;
         match device.as_str() {
             "lights" => actuators::switch_lights(state, &mut program_state)?,
             "fan" => actuators::switch_fan(state, &mut program_state)?,
             _ => (),
         }
-        Ok(())
+        Ok::<_, Box<dyn Error>>(())
     };
-    match exec() {
+    match exec.await {
         Ok(_) => StatusCode::OK,
         Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
     }
@@ -95,7 +89,7 @@ struct Info {
 async fn info_handler(
     State(program_state): State<ProgramStateShared>,
 ) -> Result<Json<Info>, String> {
-    let mut program_state = lock_state(&program_state).map_err(|e| e.to_string())?;
+    let mut program_state = program_state.lock().await;
     let temperature = sensors::get_temperature(&program_state.config).map_err(|e| e.to_string())?;
     let soil_moisture =
         sensors::get_soil_moisture(&program_state.config).map_err(|e| e.to_string())?;
@@ -166,16 +160,17 @@ async fn watering_history_handler(
     Path(entries): Path<usize>,
     State(program_state): State<ProgramStateShared>,
 ) -> Response {
-    let records = lock_state(&program_state).map(|state| {
-        state
-            .history
-            .watering_records
-            .iter()
-            .rev()
-            .take(entries)
-            .cloned()
-            .collect::<Vec<_>>()
-    });
+    let records = program_state
+        .lock()
+        .await
+        .history
+        .watering_records
+        .iter()
+        .rev()
+        .take(entries)
+        .cloned()
+        .collect::<Vec<_>>();
+    let records = Ok::<_, Box<dyn Error>>(records);
     let records = records.map(Json);
     match records {
         Ok(records) => records.into_response(),

@@ -143,10 +143,16 @@ impl Default for Configuration {
                 imaging_resolution: ImageResolution::R480p,
             },
             server_settings: ServerSettings { port: 2205 },
-            ventilation_settings: VentilationSettings {
-                frequency_mins: 30,
-                duration_mins: 3,
-            },
+            ventilation_settings: VentilationSettings::default(),
+        }
+    }
+}
+
+impl Default for VentilationSettings {
+    fn default() -> VentilationSettings {
+        VentilationSettings {
+            frequency_mins: 30,
+            duration_mins: 3,
         }
     }
 }

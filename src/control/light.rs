@@ -2,11 +2,7 @@ use std::time::Duration;
 
 use chrono::{Local, Timelike};
 
-use crate::{
-    actuators,
-    error::GenericResult,
-    state::{lock_state, ProgramStateShared},
-};
+use crate::{actuators, error::GenericResult, state::ProgramStateShared};
 
 fn should_turn_on_light(on_hours: u64, lights_out: u64, current_hour: u64) -> bool {
     let off_hours = 24 - on_hours;
@@ -15,9 +11,9 @@ fn should_turn_on_light(on_hours: u64, lights_out: u64, current_hour: u64) -> bo
         .any(|x| x == current_hour)
 }
 
-fn light_control(program_state: ProgramStateShared) -> GenericResult<()> {
+async fn light_control(program_state: ProgramStateShared) -> GenericResult<()> {
     let program_state = program_state.clone();
-    let mut program_state = lock_state(&program_state)?;
+    let mut program_state = program_state.lock().await;
 
     let on_hours = program_state.config.controller_settings.sunlight_hours;
     let current_hour = Local::now().time().hour() as u64;

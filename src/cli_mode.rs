@@ -7,22 +7,25 @@ use crate::{
     error::GenericResult,
     io::{self, get_input_voltage},
     sensors,
-    state::{lock_state, ProgramStateShared},
+    state::ProgramStateShared,
 };
 
 struct LoopFlags {
     exit: bool,
 }
 
-fn process_input(input: String, program_state: ProgramStateShared) -> GenericResult<LoopFlags> {
+async fn process_input(
+    input: String,
+    program_state: ProgramStateShared,
+) -> GenericResult<LoopFlags> {
     let args = input.split(' ').collect::<Vec<_>>();
     let main_command = *args.first().ok_or("No main command found.")?;
     match main_command {
         "ana" => command_ana(&args)?,
-        "rel" => command_rel(&args, program_state)?,
-        "soil" => command_soil(&args, program_state)?,
-        "temp" => command_temp(&args, program_state)?,
-        "pump" => command_pump(&args, program_state)?,
+        "rel" => command_rel(&args, program_state).await?,
+        "soil" => command_soil(&args, program_state).await?,
+        "temp" => command_temp(&args, program_state).await?,
+        "pump" => command_pump(&args, program_state).await?,
         "exit" => return Ok(LoopFlags { exit: true }),
         _ => return Err("Unknown main command".into()),
     };
@@ -30,8 +33,8 @@ fn process_input(input: String, program_state: ProgramStateShared) -> GenericRes
     Ok(LoopFlags { exit: false })
 }
 
-fn command_pump(args: &[&str], program_state: ProgramStateShared) -> GenericResult<()> {
-    let mut program_state = lock_state(&program_state)?;
+async fn command_pump(args: &[&str], program_state: ProgramStateShared) -> GenericResult<()> {
+    let mut program_state = program_state.lock().await;
 
     let use_grams = args
         .get(2)
@@ -53,13 +56,13 @@ fn command_pump(args: &[&str], program_state: ProgramStateShared) -> GenericResu
     Ok(())
 }
 
-fn command_temp(args: &[&str], program_state: ProgramStateShared) -> GenericResult<()> {
+async fn command_temp(args: &[&str], program_state: ProgramStateShared) -> GenericResult<()> {
     let show_loop = args
         .get(1)
         .map(|arg| matches!(*arg, "loop"))
         .unwrap_or(false);
     loop {
-        let program_state = lock_state(&program_state)?;
+        let program_state = program_state.lock().await;
         let temperature = sensors::get_temperature(&program_state.config)?;
         println!("Temperature: {}C", temperature);
         if !show_loop {
@@ -70,14 +73,14 @@ fn command_temp(args: &[&str], program_state: ProgramStateShared) -> GenericResu
     Ok(())
 }
 
-fn command_soil(args: &[&str], program_state: ProgramStateShared) -> GenericResult<()> {
+async fn command_soil(args: &[&str], program_state: ProgramStateShared) -> GenericResult<()> {
     let show_loop = args
         .get(1)
         .map(|arg| matches!(*arg, "loop"))
         .unwrap_or(false);
 
     loop {
-        let program_state = lock_state(&program_state)?;
+        let program_state = program_state.lock().await;
         let humidity = sensors::get_soil_moisture(&program_state.config)?;
         println!("Soil humidity: {}", humidity);
         if !show_loop {
@@ -89,8 +92,8 @@ fn command_soil(args: &[&str], program_state: ProgramStateShared) -> GenericResu
     Ok(())
 }
 
-fn command_rel(args: &[&str], program_state: ProgramStateShared) -> GenericResult<()> {
-    let mut program_state = lock_state(&program_state)?;
+async fn command_rel(args: &[&str], program_state: ProgramStateShared) -> GenericResult<()> {
+    let mut program_state = program_state.lock().await;
 
     let pin = args
         .get(1)
@@ -146,13 +149,16 @@ fn command_ana(args: &[&str]) -> GenericResult<()> {
     Ok(())
 }
 
-fn cli_loop(rl: &mut CLIEditor, program_state: ProgramStateShared) -> GenericResult<LoopFlags> {
+async fn cli_loop(
+    rl: &mut CLIEditor,
+    program_state: ProgramStateShared,
+) -> GenericResult<LoopFlags> {
     let readline = rl.readline("growpi>> ");
 
     match readline {
         Ok(line) => {
             rl.add_history_entry(line.as_str())?;
-            process_input(line, program_state)
+            process_input(line, program_state).await
         }
         Err(ReadlineError::Eof) => Ok(LoopFlags { exit: true }),
         Err(_) => Err("No input".into()),
@@ -166,11 +172,11 @@ fn init_readline() -> GenericResult<CLIEditor> {
     Ok(rl)
 }
 
-pub fn run_cli(program_state: ProgramStateShared) {
+pub async fn run_cli(program_state: ProgramStateShared) {
     let mut rl = init_readline().unwrap();
 
     'cli_loop: loop {
-        match cli_loop(&mut rl, program_state.clone()) {
+        match cli_loop(&mut rl, program_state.clone()).await {
             Ok(loop_flags) => {
                 if loop_flags.exit {
                     println!("Leaving CLI");
