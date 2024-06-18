@@ -1,6 +1,5 @@
 #![feature(duration_constructors)]
 #![feature(exit_status_error)]
-#![feature(absolute_path)]
 
 use cli_mode::run_cli;
 use config::Configuration;

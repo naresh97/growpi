@@ -68,6 +68,12 @@ pub struct ServerSettings {
     pub port: u16,
 }
 
+#[derive(Serialize, Deserialize, Clone)]
+pub struct VentilationSettings {
+    pub frequency_mins: u32,
+    pub duration_mins: u32,
+}
+
 #[derive(Serialize, Deserialize)]
 pub struct Configuration {
     pub board_settings: BoardSettings,
@@ -78,6 +84,7 @@ pub struct Configuration {
     pub controller_settings: ControllerSettings,
     pub data_logging_settings: DataLoggingSettings,
     pub server_settings: ServerSettings,
+    pub ventilation_settings: VentilationSettings,
 }
 
 impl Configuration {
@@ -136,6 +143,10 @@ impl Default for Configuration {
                 imaging_resolution: ImageResolution::R480p,
             },
             server_settings: ServerSettings { port: 2205 },
+            ventilation_settings: VentilationSettings {
+                frequency_mins: 30,
+                duration_mins: 3,
+            },
         }
     }
 }
