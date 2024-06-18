@@ -11,7 +11,7 @@ pub async fn ventilation_control_loop(program_state: ProgramStateShared) {
             .ventilation_settings
             .frequency_mins;
         let ventilation_frequency = Duration::from_mins(ventilation_frequency as u64);
-        let _result = ventilation_control(program_state.clone()).await;
+        let _ = ventilation_control(program_state.clone()).await;
         tokio::time::sleep(ventilation_frequency).await;
     }
 }
