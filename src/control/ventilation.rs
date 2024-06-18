@@ -17,15 +17,24 @@ pub async fn ventilation_control_loop(program_state: ProgramStateShared) {
 }
 
 async fn ventilation_control(program_state: ProgramStateShared) -> anyhow::Result<()> {
-    let mut program_state = program_state.lock().await;
-    let fan_state = actuators::get_fan_state(&mut program_state)?;
-
-    let ventilation_duration = program_state.config.ventilation_settings.duration_mins;
-    let ventilation_duration = Duration::from_mins(ventilation_duration.into());
-
-    actuators::switch_fan(io::RelaySwitchState::On, &mut program_state)?;
+    let ventilation_duration;
+    let fan_state;
+    {
+        let mut program_state = program_state.lock().await;
+        fan_state = actuators::get_fan_state(&mut program_state)?;
+        ventilation_duration = Duration::from_mins(
+            program_state
+                .config
+                .ventilation_settings
+                .duration_mins
+                .into(),
+        );
+        actuators::switch_fan(io::RelaySwitchState::On, &mut program_state)?;
+    }
     tokio::time::sleep(ventilation_duration).await;
-    actuators::switch_fan(fan_state, &mut program_state)?;
-
+    {
+        let mut program_state = program_state.lock().await;
+        actuators::switch_fan(fan_state, &mut program_state)?;
+    }
     Ok(())
 }
