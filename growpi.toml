@@ -46,3 +46,7 @@ imaging_resolution = "R480p"
 
 [server_settings]
 port = 2205
+
+[ventilation_settings]
+frequency_mins = 30
+duration_mins = 3

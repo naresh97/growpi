@@ -1,8 +1,6 @@
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
 
-use crate::error::GenericResult;
-
 #[derive(Clone, Serialize, Deserialize)]
 pub struct WateringRecord {
     pub time: i64,
@@ -28,7 +26,7 @@ pub struct History {
 const FILE_PATH: &str = "./growpi.history.csv";
 
 impl History {
-    pub fn save(&self) -> GenericResult<()> {
+    pub fn save(&self) -> anyhow::Result<()> {
         let mut writer = csv::WriterBuilder::new()
             .has_headers(true)
             .from_path(FILE_PATH)?;
@@ -39,7 +37,7 @@ impl History {
         Ok(())
     }
 
-    pub fn load() -> GenericResult<History> {
+    pub fn load() -> anyhow::Result<History> {
         let mut history = csv::ReaderBuilder::new()
             .has_headers(true)
             .from_path(FILE_PATH)?;

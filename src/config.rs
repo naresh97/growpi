@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{error::GenericResult, io::ImageResolution};
+use crate::io::ImageResolution;
 
 #[derive(Serialize, Deserialize)]
 pub struct RelaySettings {
@@ -68,6 +68,12 @@ pub struct ServerSettings {
     pub port: u16,
 }
 
+#[derive(Serialize, Deserialize, Clone)]
+pub struct VentilationSettings {
+    pub frequency_mins: u32,
+    pub duration_mins: u32,
+}
+
 #[derive(Serialize, Deserialize)]
 pub struct Configuration {
     pub board_settings: BoardSettings,
@@ -78,15 +84,16 @@ pub struct Configuration {
     pub controller_settings: ControllerSettings,
     pub data_logging_settings: DataLoggingSettings,
     pub server_settings: ServerSettings,
+    pub ventilation_settings: VentilationSettings,
 }
 
 impl Configuration {
-    pub fn from_file(path: &std::path::Path) -> GenericResult<Configuration> {
+    pub fn from_file(path: &std::path::Path) -> anyhow::Result<Configuration> {
         let text = std::fs::read_to_string(path)?;
         let config = toml::from_str(text.as_str())?;
         Ok(config)
     }
-    pub fn save_to_file(&self, path: &std::path::Path) -> GenericResult<()> {
+    pub fn save_to_file(&self, path: &std::path::Path) -> anyhow::Result<()> {
         let text = toml::to_string_pretty(self)?;
         std::fs::write(path, text)?;
         Ok(())
@@ -136,6 +143,16 @@ impl Default for Configuration {
                 imaging_resolution: ImageResolution::R480p,
             },
             server_settings: ServerSettings { port: 2205 },
+            ventilation_settings: VentilationSettings::default(),
+        }
+    }
+}
+
+impl Default for VentilationSettings {
+    fn default() -> VentilationSettings {
+        VentilationSettings {
+            frequency_mins: 30,
+            duration_mins: 3,
         }
     }
 }

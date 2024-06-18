@@ -1,23 +1,17 @@
 use std::{path::Path, time::Duration};
 
-use crate::{
-    error::GenericResult,
-    io,
-    state::{lock_state, ProgramStateShared},
-};
+use crate::{io, state::ProgramStateShared};
 
 pub const IMAGE_PATH: &str = "./growpi.image.jpeg";
 
-pub async fn save_latest_image(program_state: ProgramStateShared) -> GenericResult<()> {
-    let resolution = lock_state(&program_state)
-        .map(|state| {
-            state
-                .config
-                .data_logging_settings
-                .imaging_resolution
-                .clone()
-        })
-        .unwrap_or(io::ImageResolution::R360p);
+pub async fn save_latest_image(program_state: ProgramStateShared) -> anyhow::Result<()> {
+    let resolution = program_state
+        .lock()
+        .await
+        .config
+        .data_logging_settings
+        .imaging_resolution
+        .clone();
 
     io::capture_image(&resolution, get_image_path()).await?;
     Ok(())
@@ -29,13 +23,17 @@ pub fn get_image_path() -> &'static Path {
 
 pub async fn imaging_loop(program_state: ProgramStateShared) {
     loop {
-        let imaging_frequency = lock_state(&program_state)
-            .map(|state| state.config.data_logging_settings.imaging_frequency_minutes)
-            .map(|f| match f {
-                0 => None,
-                n => Some(n),
-            })
-            .unwrap_or(None);
+        let imaging_frequency = match program_state
+            .lock()
+            .await
+            .config
+            .data_logging_settings
+            .imaging_frequency_minutes
+        {
+            0 => None,
+            n => Some(n),
+        };
+
         match imaging_frequency {
             Some(f) => {
                 let _ = save_latest_image(program_state.clone()).await;

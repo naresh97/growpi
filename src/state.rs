@@ -1,6 +1,8 @@
-use std::sync::{Arc, Mutex, MutexGuard};
+use std::sync::Arc;
 
-use crate::{config::Configuration, error::GenericResult, history::History, io};
+use tokio::sync::Mutex;
+
+use crate::{config::Configuration, history::History, io};
 
 pub type ProgramStateShared = Arc<Mutex<ProgramState>>;
 pub struct ProgramState {
@@ -9,17 +11,7 @@ pub struct ProgramState {
     pub history: History,
 }
 
-fn lock_err<T: std::fmt::Display>(e: T) -> String {
-    format!("{}", e)
-}
-
-pub fn lock_state(
-    program_state: &ProgramStateShared,
-) -> GenericResult<MutexGuard<'_, ProgramState>> {
-    Ok(program_state.lock().map_err(lock_err)?)
-}
-
-pub fn init_state(config: Configuration) -> GenericResult<ProgramStateShared> {
+pub fn init_state(config: Configuration) -> anyhow::Result<ProgramStateShared> {
     let relay = io::Relay::new(&config)?;
     let history = History::load().unwrap_or_default();
     Ok(Arc::new(Mutex::new(ProgramState {

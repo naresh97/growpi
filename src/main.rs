@@ -1,6 +1,5 @@
 #![feature(duration_constructors)]
 #![feature(exit_status_error)]
-#![feature(absolute_path)]
 
 use cli_mode::run_cli;
 use config::Configuration;
@@ -11,7 +10,6 @@ mod actuators;
 mod cli_mode;
 mod config;
 mod control;
-mod error;
 mod history;
 mod io;
 mod sensors;
@@ -46,7 +44,7 @@ async fn main() {
     let mode = args.get(1).map(|x| x.as_str());
 
     match mode {
-        Some("cli") => run_cli(program_state.clone()),
+        Some("cli") => run_cli(program_state.clone()).await,
         _ => run_server(program_state.clone()).await,
     }
 
